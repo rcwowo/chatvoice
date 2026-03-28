@@ -1,21 +1,48 @@
-# React + TypeScript + Vite + shadcn/ui
+# Chatvoice
 
-This is a template for a new Vite project with React, TypeScript, and shadcn/ui.
+Chatvoice is a local-first web app for Twitch broadcasters who want chat messages read out loud.
+It connects to Twitch chat with `twurple`, synthesizes speech with `edge-tts`, and keeps dashboard state entirely inside the browser.
 
-## Adding components
+## Features
 
-To add components to your app, run the following command:
+- Connect to a Twitch chatroom from a local dashboard.
+- Randomly assign each chatter a saved voice profile, then persist that assignment locally.
+- Tune playback filters, queue limits, blocklists, and speech templates.
+- Export and restore versioned local backups.
+- Use shadcn/ui components without replacing their design language.
+
+## Stack
+
+- React + Vite + TypeScript
+- shadcn/ui
+- Express local bridge server
+- `@twurple/chat` + `@twurple/auth`
+- `edge-tts`
+
+## Running locally
+
+Install dependencies:
 
 ```bash
-npx shadcn@latest add button
+bun install
 ```
 
-This will place the ui components in the `src/components` directory.
+Start the client and local bridge together:
 
-## Using components
-
-To use the components in your app, import them as follows:
-
-```tsx
-import { Button } from "@/components/ui/button"
+```bash
+bun run dev
 ```
+
+The dashboard runs in Vite, and the local bridge listens on `http://localhost:3031`.
+
+## Notes on storage and backups
+
+- Dashboard config is stored in browser `localStorage`.
+- Backups include `appVersion`, `schemaVersion`, and export time.
+- Restore logic accepts the current envelope format and older raw config payloads, then migrates them into the latest schema.
+
+## Twitch auth
+
+- Anonymous mode works for listen-only chat connections.
+- You can also provide a Twitch `clientId` and `accessToken` locally in the dashboard.
+- Tokens are not uploaded anywhere; they stay in local browser storage and are only sent to the local bridge.
