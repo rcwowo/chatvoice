@@ -180,66 +180,6 @@ export function RangeField({
 }
 
 // ---------------------------------------------------------------------------
-// StatusPill
-// ---------------------------------------------------------------------------
-
-export function StatusPill({
-  label,
-  active,
-  activeLabel = "Ready",
-  inactiveLabel = "Offline",
-}: {
-  label: string
-  active: boolean
-  activeLabel?: string
-  inactiveLabel?: string
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-background px-4 py-3">
-      <div className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-        {label}
-      </div>
-      <div className="mt-2 flex items-center gap-2 text-sm font-medium">
-        <span
-          className={cn(
-            "size-2 rounded-full",
-            active ? "bg-primary" : "bg-muted-foreground/40"
-          )}
-        />
-        {active ? activeLabel : inactiveLabel}
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// MetricCard
-// ---------------------------------------------------------------------------
-
-export function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  detail,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  value: string
-  detail: string
-}) {
-  return (
-    <div className="rounded-2xl border border-border/70 bg-background p-4">
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Icon className="size-4" />
-        <span className="text-xs tracking-[0.18em] uppercase">{label}</span>
-      </div>
-      <div className="mt-3 text-2xl font-semibold tracking-tight">{value}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{detail}</div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
 // VoiceMeta
 // ---------------------------------------------------------------------------
 
@@ -249,21 +189,19 @@ export function VoiceMeta({
 }: {
   voiceKey: string
   voices: Array<{
-    shortName: string
-    locale: string
-    gender: string
-    personalities: string[]
+    name: string
+    lang: string
+    localService: boolean
   }>
 }) {
-  const voice = voices.find((item) => item.shortName === voiceKey)
+  const voice = voices.find((item) => item.name === voiceKey)
 
   return (
     <div className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
       {voice ? (
         <div className="space-y-1">
-          <div>{voice.locale}</div>
-          <div>{voice.gender}</div>
-          <div>{voice.personalities.join(", ") || "General"}</div>
+          <div>{voice.lang}</div>
+          <div>{voice.localService ? "Local voice" : "Remote voice"}</div>
         </div>
       ) : (
         <div>Voice metadata unavailable.</div>

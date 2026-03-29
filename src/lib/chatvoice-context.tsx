@@ -1,7 +1,15 @@
 import * as React from "react"
 
 import { useChatvoiceConfig } from "@/hooks/use-chatvoice-config"
-import { useChatvoiceServer } from "@/hooks/use-chatvoice-server"
+import { useTwitchChat } from "@/hooks/use-twitch-chat"
+import {
+  type BrowserVoice,
+  useBrowserVoices,
+  findSynthVoice,
+  configRateToSpeechRate,
+  configPitchToSpeechPitch,
+  configVolumeToSpeechVolume,
+} from "@/hooks/use-browser-voices"
 import {
   type VoiceAssignment,
   type VoiceProfile,
@@ -13,10 +21,9 @@ import {
 } from "@/lib/chatvoice-config"
 import type { AppConfig } from "@/lib/chatvoice-config"
 import type {
-  ChatConnectionState,
-  ChatMessageEvent,
-  ServerVoice,
-} from "@/lib/chatvoice-api"
+  TwitchChatMessage,
+  TwitchConnectionState,
+} from "@/lib/twitch-chat"
 
 // ---------------------------------------------------------------------------
 // Playback queue
@@ -47,22 +54,24 @@ export type ChatvoiceContextValue = {
   updateConfig: ReturnType<typeof useChatvoiceConfig>["updateConfig"]
   restoreBackup: ReturnType<typeof useChatvoiceConfig>["restoreBackup"]
 
-  // Server
-  voices: ServerVoice[]
+  // Browser voices
+  voices: BrowserVoice[]
   voicesLoading: boolean
-  connectionState: ChatConnectionState | null
-  eventsReady: boolean
-  messages: ChatMessageEvent[]
-  serverLogs: string[]
-  startConnection: ReturnType<typeof useChatvoiceServer>["startConnection"]
-  stopConnection: ReturnType<typeof useChatvoiceServer>["stopConnection"]
-  requestSpeech: ReturnType<typeof useChatvoiceServer>["requestSpeech"]
+
+  // Chat
+  connectionState: TwitchConnectionState
+  messages: TwitchChatMessage[]
+  logs: string[]
+  startConnection: (channel: string) => void
+  stopConnection: () => void
 
   // Playback queue
   playbackQueue: PlaybackQueueItem[]
   setPlaybackQueue: React.Dispatch<React.SetStateAction<PlaybackQueueItem[]>>
   isPlayingQueue: boolean
   lastSpokenMessageId: string | null
+  skipCurrent: () => void
+  clearQueue: () => void
 
   // Navigation
   activePage: PageId
@@ -88,20 +97,10 @@ export function useChatvoice() {
 // ---------------------------------------------------------------------------
 
 export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
-  const audioRef = React.useRef<HTMLAudioElement | null>(null)
-
   const { config, ready, updateConfig, restoreBackup } = useChatvoiceConfig()
-  const {
-    voices,
-    voicesLoading,
-    connectionState,
-    eventsReady,
-    messages,
-    serverLogs,
-    startConnection,
-    stopConnection,
-    requestSpeech,
-  } = useChatvoiceServer()
+  const { connectionState, messages, logs, startConnection, stopConnection } =
+    useTwitchChat()
+  const { voices, loading: voicesLoading } = useBrowserVoices()
 
   const [activePage, setActivePage] = React.useState<PageId>("chat")
   const [statusMessage, setStatusMessage] = React.useState<string | null>(null)
@@ -114,6 +113,18 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   >(null)
 
   const queueCapacity = Math.max(config.playback.maxQueueSize, 1)
+
+  // Refs so the speech consumer can read current state without re-triggering
+  const playbackQueueRef = React.useRef(playbackQueue)
+  const playbackEnabledRef = React.useRef(config.playback.enabled)
+
+  React.useEffect(() => {
+    playbackQueueRef.current = playbackQueue
+  }, [playbackQueue])
+
+  React.useEffect(() => {
+    playbackEnabledRef.current = config.playback.enabled
+  }, [config.playback.enabled])
 
   // -----------------------------------------------------------------------
   // Enqueue new chat messages as they arrive
@@ -203,83 +214,76 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   ])
 
   // -----------------------------------------------------------------------
-  // Play from queue
+  // Speech consumer — plays items one at a time
+  //
+  // Key design: the consumer only re-triggers when `isPlayingQueue` changes
+  // to `false` or when `playbackQueue.length` changes. We do NOT put the
+  // full queue array in the dep list, only its length, so that internal
+  // queue reordering doesn't restart the effect and cancel the current
+  // utterance mid-speech.
   // -----------------------------------------------------------------------
 
+  const queueLength = playbackQueue.length
+
   React.useEffect(() => {
-    if (isPlayingQueue) {
+    if (isPlayingQueue || queueLength === 0 || !playbackEnabledRef.current) {
       return
     }
 
-    const nextItem = playbackQueue[0]
-    if (!nextItem || !config.playback.enabled) {
+    const item = playbackQueueRef.current[0]
+    if (!item) return
+
+    const synth = window.speechSynthesis
+    if (!synth) {
+      setStatusMessage("SpeechSynthesis is not available in this browser.")
+      setPlaybackQueue((current) => current.slice(1))
       return
     }
 
-    let cancelled = false
+    setIsPlayingQueue(true)
 
-    async function speakQueueItem() {
-      setIsPlayingQueue(true)
+    const utterance = new SpeechSynthesisUtterance(item.text)
 
-      try {
-        const audioBlob = await requestSpeech({
-          text: nextItem.text,
-          voice: nextItem.profile.voice,
-          rate: nextItem.profile.rate,
-          pitch: nextItem.profile.pitch,
-          volume: nextItem.profile.volume,
-        })
+    const synthVoice = findSynthVoice(item.profile.voice)
+    if (synthVoice) {
+      utterance.voice = synthVoice
+    }
 
-        if (cancelled) {
-          return
-        }
+    utterance.rate = configRateToSpeechRate(item.profile.rate)
+    utterance.pitch = configPitchToSpeechPitch(item.profile.pitch)
+    utterance.volume = configVolumeToSpeechVolume(item.profile.volume)
 
-        const audioUrl = URL.createObjectURL(audioBlob)
-        const audio = audioRef.current ?? new Audio()
-        audioRef.current = audio
-        audio.src = audioUrl
-        await audio.play()
+    utterance.onend = () => {
+      setPlaybackQueue((current) => current.slice(1))
+      setIsPlayingQueue(false)
+    }
 
-        await new Promise<void>((resolve, reject) => {
-          const handleEnded = () => {
-            cleanup()
-            resolve()
-          }
-          const handleError = () => {
-            cleanup()
-            reject(new Error("Audio playback failed"))
-          }
-          const cleanup = () => {
-            audio.removeEventListener("ended", handleEnded)
-            audio.removeEventListener("error", handleError)
-            URL.revokeObjectURL(audioUrl)
-          }
-
-          audio.addEventListener("ended", handleEnded)
-          audio.addEventListener("error", handleError)
-        })
-      } catch (error) {
-        if (!cancelled) {
-          setStatusMessage(
-            error instanceof Error
-              ? error.message
-              : "Failed to synthesize speech"
-          )
-        }
-      } finally {
-        if (!cancelled) {
-          setPlaybackQueue((current) => current.slice(1))
-          setIsPlayingQueue(false)
-        }
+    utterance.onerror = (event) => {
+      if (event.error !== "canceled") {
+        setStatusMessage(`Speech failed: ${event.error}`)
       }
+      setPlaybackQueue((current) => current.slice(1))
+      setIsPlayingQueue(false)
     }
 
-    void speakQueueItem()
+    synth.speak(utterance)
+  }, [isPlayingQueue, queueLength])
 
-    return () => {
-      cancelled = true
-    }
-  }, [config.playback.enabled, isPlayingQueue, playbackQueue, requestSpeech])
+  // -----------------------------------------------------------------------
+  // Queue controls
+  // -----------------------------------------------------------------------
+
+  const skipCurrent = React.useCallback(() => {
+    window.speechSynthesis?.cancel()
+    setPlaybackQueue((current) => current.slice(1))
+    setIsPlayingQueue(false)
+  }, [])
+
+  const clearQueue = React.useCallback(() => {
+    window.speechSynthesis?.cancel()
+    setPlaybackQueue([])
+    setIsPlayingQueue(false)
+  }, [])
 
   // -----------------------------------------------------------------------
   // Context value
@@ -294,16 +298,16 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       voices,
       voicesLoading,
       connectionState,
-      eventsReady,
       messages,
-      serverLogs,
+      logs,
       startConnection,
       stopConnection,
-      requestSpeech,
       playbackQueue,
       setPlaybackQueue,
       isPlayingQueue,
       lastSpokenMessageId,
+      skipCurrent,
+      clearQueue,
       activePage,
       setActivePage,
       statusMessage,
@@ -317,15 +321,15 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       voices,
       voicesLoading,
       connectionState,
-      eventsReady,
       messages,
-      serverLogs,
+      logs,
       startConnection,
       stopConnection,
-      requestSpeech,
       playbackQueue,
       isPlayingQueue,
       lastSpokenMessageId,
+      skipCurrent,
+      clearQueue,
       activePage,
       statusMessage,
     ]

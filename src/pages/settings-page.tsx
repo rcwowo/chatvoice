@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Field, ToggleRow } from "@/components/dashboard-primitives"
 
@@ -53,18 +52,16 @@ export function SettingsPage() {
   // Connection handlers
   // -----------------------------------------------------------------------
 
-  const handleConnect = async () => {
+  const handleConnect = () => {
+    const channel = config.twitch.channel.trim()
+    if (!channel) return
+
     setIsSavingConnection(true)
     setStatusMessage(null)
 
     try {
-      await startConnection({
-        channel: config.twitch.channel,
-        clientId: config.twitch.clientId,
-        accessToken: config.twitch.accessToken,
-        readOnly: config.twitch.readOnly,
-      })
-      setStatusMessage("Chatvoice is now connected to Twitch chat.")
+      startConnection(channel)
+      setStatusMessage("Connecting to Twitch chat...")
     } catch (error) {
       setStatusMessage(
         error instanceof Error ? error.message : "Connection failed"
@@ -74,8 +71,8 @@ export function SettingsPage() {
     }
   }
 
-  const handleDisconnect = async () => {
-    await stopConnection()
+  const handleDisconnect = () => {
+    stopConnection()
     setStatusMessage("Disconnected from Twitch chat.")
   }
 
@@ -83,7 +80,7 @@ export function SettingsPage() {
   // Preview handler
   // -----------------------------------------------------------------------
 
-  const handlePreviewPlayback = async () => {
+  const handlePreviewPlayback = () => {
     const previewProfile =
       config.voiceProfiles.find((profile) => profile.enabled) ??
       config.voiceProfiles[0]
@@ -200,12 +197,12 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle>Connection</CardTitle>
           <CardDescription>
-            Use anonymous chat for listening only, or add a Twitch token now so
-            later dashboard features can reuse it.
+            Connect to any Twitch channel for anonymous read-only chat
+            listening. No authentication required.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <Field label="Channel">
+          <Field label="Channel" className="md:col-span-2">
             <Input
               value={config.twitch.channel}
               onChange={(event) =>
@@ -220,66 +217,17 @@ export function SettingsPage() {
               placeholder="broadcastername"
             />
           </Field>
-          <Field label="Client ID">
-            <Input
-              value={config.twitch.clientId}
-              onChange={(event) =>
-                updateConfig((current) => ({
-                  ...current,
-                  twitch: {
-                    ...current.twitch,
-                    clientId: event.target.value,
-                  },
-                }))
-              }
-              placeholder="Optional for anonymous listen"
-            />
-          </Field>
-          <Field label="Access token" className="md:col-span-2">
-            <Input
-              type="password"
-              value={config.twitch.accessToken}
-              onChange={(event) =>
-                updateConfig((current) => ({
-                  ...current,
-                  twitch: {
-                    ...current.twitch,
-                    accessToken: event.target.value,
-                  },
-                }))
-              }
-              placeholder="Optional for anonymous listen"
-            />
-          </Field>
-          <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 md:col-span-2">
-            <div>
-              <div className="text-sm font-medium">Read-only Twitch auth</div>
-              <div className="text-xs text-muted-foreground">
-                Keeps the bridge in listening mode. Leave enabled unless you
-                later need write scopes.
-              </div>
-            </div>
-            <Switch
-              checked={config.twitch.readOnly}
-              onCheckedChange={(checked) =>
-                updateConfig((current) => ({
-                  ...current,
-                  twitch: { ...current.twitch, readOnly: checked },
-                }))
-              }
-            />
-          </div>
         </CardContent>
         <CardFooter className="flex flex-wrap justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant={connectionState?.connected ? "default" : "outline"}>
-              {connectionState?.connected ? "Connected" : "Disconnected"}
+            <Badge variant={connectionState.connected ? "default" : "outline"}>
+              {connectionState.connected
+                ? "Connected"
+                : connectionState.connecting
+                  ? "Connecting"
+                  : "Disconnected"}
             </Badge>
-            <span>
-              {connectionState?.usingAnonymousConnection
-                ? "Listening anonymously"
-                : "Authenticated with token"}
-            </span>
+            <span>Anonymous read-only</span>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleDisconnect}>
@@ -302,7 +250,7 @@ export function SettingsPage() {
             <CardTitle>Speech template</CardTitle>
             <CardDescription>
               Control how final spoken text is assembled before it is sent to
-              Edge TTS.
+              the browser speech engine.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -436,7 +384,7 @@ export function SettingsPage() {
             <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
               <div className="font-medium text-foreground">What gets saved</div>
               <ul className="mt-3 space-y-2">
-                <li>- Twitch channel and auth settings</li>
+                <li>- Twitch channel settings</li>
                 <li>- Voice profile library</li>
                 <li>- Randomized user assignments</li>
                 <li>- Filters, limits, and blocklists</li>
@@ -492,8 +440,9 @@ export function SettingsPage() {
               </div>
               <p className="mt-2">
                 Browser `localStorage` holds the source of truth for the
-                dashboard, while the local server handles Twitch connectivity
-                and speech synthesis without relying on a remote database.
+                dashboard. Twitch chat connects directly via WebSocket and
+                speech uses the browser&apos;s built-in SpeechSynthesis API — no
+                server required.
               </p>
             </div>
           </CardContent>

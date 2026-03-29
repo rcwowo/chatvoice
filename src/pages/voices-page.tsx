@@ -34,9 +34,7 @@ export function VoicesPage() {
     () =>
       voices
         .slice()
-        .sort((left, right) =>
-          left.friendlyName.localeCompare(right.friendlyName)
-        ),
+        .sort((left, right) => left.label.localeCompare(right.label)),
     [voices]
   )
 
@@ -88,7 +86,7 @@ export function VoicesPage() {
                 </div>
               </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <Field label="Edge voice">
+                <Field label="Browser voice">
                   <Select
                     value={profile.voice}
                     onValueChange={(value) =>
@@ -108,8 +106,8 @@ export function VoicesPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {voiceOptions.map((voice) => (
-                        <SelectItem key={voice.name} value={voice.shortName}>
-                          {voice.friendlyName}
+                        <SelectItem key={voice.name} value={voice.name}>
+                          {voice.label}
                         </SelectItem>
                       ))}
                     </SelectContent>

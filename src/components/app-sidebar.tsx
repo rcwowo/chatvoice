@@ -1,15 +1,18 @@
 import {
   AudioLinesIcon,
+  CircleIcon,
   MessageSquareIcon,
   SettingsIcon,
   ShieldIcon,
   UsersIcon,
 } from "lucide-react"
 
+import logoSrc from "@/assets/logo.svg"
 import { type PageId, useChatvoice } from "@/lib/chatvoice-context"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -36,19 +39,18 @@ export function AppSidebar() {
   const { activePage, setActivePage, connectionState, playbackQueue } =
     useChatvoice()
 
+  const connected = connectionState?.connected ?? false
+  const channel = connectionState?.channel
+
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-1">
-          <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <AudioLinesIcon className="size-4" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">Chatvoice</span>
-            <span className="text-xs text-muted-foreground">
-              {connectionState?.connected ? "Connected" : "Offline"}
-            </span>
-          </div>
+        <div className="p-2">
+          <img
+            src={logoSrc}
+            alt="Chatvoice"
+            className="h-7 w-auto dark:invert"
+          />
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -75,6 +77,18 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <div className="flex items-center gap-2 px-2 py-1 text-sm">
+          <CircleIcon
+            className={`size-2.5 shrink-0 fill-current ${
+              connected ? "text-green-500" : "text-muted-foreground/50"
+            }`}
+          />
+          <span className="truncate text-muted-foreground">
+            {connected ? `Connected to #${channel}` : "Offline"}
+          </span>
+        </div>
+      </SidebarFooter>
     </Sidebar>
   )
 }

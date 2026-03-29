@@ -1,224 +1,252 @@
 import * as React from "react"
 import {
-  AudioLinesIcon,
   MessagesSquareIcon,
-  RadioIcon,
-  ShuffleIcon,
+  PauseIcon,
+  PlayIcon,
+  SkipForwardIcon,
+  Trash2Icon,
   UserRoundIcon,
-  WandSparklesIcon,
 } from "lucide-react"
 
 import { useChatvoice } from "@/lib/chatvoice-context"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
-  EmptyState,
-  MetricCard,
-  StatusPill,
-} from "@/components/dashboard-primitives"
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { EmptyState } from "@/components/dashboard-primitives"
+
+/** Format a receivedAt ISO string into a short HH:MM time. */
+function shortTime(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+}
 
 export function ChatPage() {
   const {
     config,
+    updateConfig,
     connectionState,
-    eventsReady,
     messages,
-    serverLogs,
     playbackQueue,
     isPlayingQueue,
+    skipCurrent,
+    clearQueue,
   } = useChatvoice()
 
-  const enabledVoiceCount = React.useMemo(
-    () => config.voiceProfiles.filter((profile) => profile.enabled).length,
-    [config.voiceProfiles]
-  )
-
-  const assignmentCount = Object.keys(config.assignments).length
-
-  const queueCapacity = Math.max(config.playback.maxQueueSize, 1)
-  const queueProgress = Math.min(
-    (playbackQueue.length / queueCapacity) * 100,
-    100
-  )
-
+  /* Auto-scroll: flex-col-reverse keeps scroll pinned to bottom natively.
+     We only need the ref for the scroll container itself. */
+  const chatContainerRef = React.useRef<HTMLDivElement>(null)
   const currentlyPlayingId = isPlayingQueue ? playbackQueue[0]?.id : null
+  const playbackEnabled = config.playback.enabled
+
+  const togglePlayback = React.useCallback(() => {
+    updateConfig({
+      ...config,
+      playback: { ...config.playback, enabled: !config.playback.enabled },
+    })
+  }, [config, updateConfig])
 
   return (
-    <div className="space-y-6">
-      {/* Status strip */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          icon={RadioIcon}
-          label="Chat link"
-          value={connectionState?.connected ? "Live" : "Offline"}
-          detail={
-            connectionState?.channel
-              ? `#${connectionState.channel}`
-              : "No channel yet"
-          }
-        />
-        <MetricCard
-          icon={ShuffleIcon}
-          label="Saved assignments"
-          value={String(assignmentCount)}
-          detail={`${enabledVoiceCount} enabled voices`}
-        />
-        <MetricCard
-          icon={AudioLinesIcon}
-          label="Speech queue"
-          value={`${playbackQueue.length}/${queueCapacity}`}
-          detail={isPlayingQueue ? "Playing now" : "Standing by"}
-        />
-        <div className="space-y-3 rounded-2xl border border-border/70 bg-background p-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Queue capacity</span>
-            <span>{playbackQueue.length} queued</span>
-          </div>
-          <Progress value={queueProgress} />
-          <div className="grid grid-cols-2 gap-2">
-            <StatusPill
-              label="Event stream"
-              active={eventsReady}
-              inactiveLabel="Waiting"
-            />
-            <StatusPill
-              label="Auth mode"
-              active={!connectionState?.usingAnonymousConnection}
-              activeLabel="Token"
-              inactiveLabel="Anonymous"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Chat log + queue + server logs */}
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        {/* Chat messages */}
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Recent chat
-          </h2>
-          <ScrollArea className="h-[520px] rounded-xl border border-border">
-            <div className="space-y-3 p-3">
-              {messages.length === 0 ? (
-                <EmptyState
-                  icon={UserRoundIcon}
-                  title="No chat traffic yet"
-                  description="Once connected, messages from Twitch will appear here."
-                />
-              ) : (
-                messages.map((message) => {
+    <div className="flex h-full min-h-0 gap-4">
+      {/* -- Chat log -- */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <h2 className="mb-1 shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Chat
+          {connectionState.connected && connectionState.channel ? (
+            <span className="ml-1.5 font-normal text-muted-foreground/70 normal-case">
+              #{connectionState.channel}
+            </span>
+          ) : null}
+        </h2>
+        <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border">
+          {messages.length === 0 ? (
+            <div className="flex h-full items-center justify-center">
+              <EmptyState
+                icon={UserRoundIcon}
+                title="No chat traffic yet"
+                description="Once connected, messages from Twitch will appear here."
+              />
+            </div>
+          ) : (
+            <div
+              ref={chatContainerRef}
+              className="flex h-full flex-col-reverse overflow-y-auto overscroll-contain"
+            >
+              <div className="px-3 py-2">
+                {messages.map((message) => {
                   const isPlaying = message.id === currentlyPlayingId
-
                   return (
                     <div
                       key={message.id}
-                      className={
+                      className={`group flex gap-1.5 px-1 py-0.5 leading-snug ${
                         isPlaying
-                          ? "rounded-xl border-2 border-primary bg-primary/5 p-3"
-                          : "rounded-xl border border-border bg-background p-3"
-                      }
+                          ? "rounded bg-primary/10"
+                          : "hover:bg-muted/40"
+                      }`}
                     >
-                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
+                        {shortTime(message.receivedAt)}
+                      </span>
+
+                      {message.flags.isModerator ? (
+                        <Badge
+                          variant="outline"
+                          className="my-px h-4 px-1 text-[10px] leading-none"
+                        >
+                          MOD
+                        </Badge>
+                      ) : null}
+                      {message.flags.isSubscriber ? (
+                        <Badge
+                          variant="outline"
+                          className="my-px h-4 px-1 text-[10px] leading-none"
+                        >
+                          SUB
+                        </Badge>
+                      ) : null}
+
+                      <span className="inline text-sm">
                         <span
-                          className="font-medium"
+                          className="font-semibold"
                           style={
                             message.color ? { color: message.color } : undefined
                           }
                         >
                           {message.displayName}
                         </span>
+                        <span className="text-muted-foreground">: </span>
+                        <span className="text-foreground">{message.text}</span>
                         {isPlaying ? (
-                          <Badge variant="default">Speaking</Badge>
+                          <Badge
+                            variant="default"
+                            className="ml-1.5 inline-flex h-4 px-1 align-middle text-[10px] leading-none"
+                          >
+                            TTS
+                          </Badge>
                         ) : null}
-                        {message.flags.isModerator ? (
-                          <Badge variant="outline">Mod</Badge>
-                        ) : null}
-                        {message.flags.isSubscriber ? (
-                          <Badge variant="outline">Sub</Badge>
-                        ) : null}
-                        {message.flags.isFirst ? (
-                          <Badge variant="outline">First chat</Badge>
-                        ) : null}
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {message.text}
-                      </p>
+                      </span>
                     </div>
                   )
-                })
-              )}
+                })}
+              </div>
             </div>
-          </ScrollArea>
+          )}
+        </div>
+      </div>
+
+      {/* Queue panel */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="mb-1 flex shrink-0 items-center gap-1">
+          <h2 className="flex-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Queue
+            {playbackQueue.length > 0 ? (
+              <span className="ml-1 font-normal text-muted-foreground/70 normal-case">
+                ({playbackQueue.length})
+              </span>
+            ) : null}
+          </h2>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={togglePlayback}
+                  aria-label={
+                    playbackEnabled ? "Pause speech" : "Resume speech"
+                  }
+                >
+                  {playbackEnabled ? (
+                    <PauseIcon className="size-3.5" />
+                  ) : (
+                    <PlayIcon className="size-3.5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {playbackEnabled ? "Pause speech" : "Resume speech"}
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={skipCurrent}
+                  disabled={playbackQueue.length === 0}
+                  aria-label="Skip current"
+                >
+                  <SkipForwardIcon className="size-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Skip current</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={clearQueue}
+                  disabled={playbackQueue.length === 0}
+                  aria-label="Clear queue"
+                >
+                  <Trash2Icon className="size-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Clear queue</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
-        {/* Queue + server logs */}
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h2 className="text-sm font-medium text-muted-foreground">
-              Playback queue
-            </h2>
-            <ScrollArea className="h-[240px] rounded-xl border border-border">
-              <div className="space-y-2 p-3">
-                {playbackQueue.length === 0 ? (
-                  <EmptyState
-                    icon={MessagesSquareIcon}
-                    title="Queue is empty"
-                    description="Connect to a channel or queue a preview message."
-                  />
-                ) : (
-                  playbackQueue.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className={
-                        index === 0 && isPlayingQueue
-                          ? "rounded-xl border-2 border-primary bg-primary/5 p-3"
-                          : "rounded-xl border border-border bg-background p-3"
-                      }
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="font-medium">
-                          {item.assignment.displayName}
-                        </div>
-                        <Badge variant="outline">{item.profile.label}</Badge>
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {item.text}
-                      </p>
+        <ScrollArea className="min-h-0 flex-1 rounded-xl border border-border">
+          <div className="space-y-2 p-3">
+            {playbackQueue.length === 0 ? (
+              <EmptyState
+                icon={MessagesSquareIcon}
+                title="Queue is empty"
+                description={
+                  playbackEnabled
+                    ? "Incoming chat messages will be queued for speech."
+                    : "Speech is paused. Press play to resume."
+                }
+              />
+            ) : (
+              playbackQueue.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={
+                    index === 0 && isPlayingQueue
+                      ? "rounded-xl border-2 border-primary bg-primary/5 p-3"
+                      : "rounded-xl border border-border bg-background p-3"
+                  }
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-medium">
+                      {item.assignment.displayName}
                     </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
+                    <Badge variant="outline">{item.profile.label}</Badge>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {item.text}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
-
-          <div className="space-y-2">
-            <h2 className="text-sm font-medium text-muted-foreground">
-              Server logs
-            </h2>
-            <ScrollArea className="h-[240px] rounded-xl border border-border">
-              <div className="space-y-2 p-3 text-sm text-muted-foreground">
-                {serverLogs.length === 0 ? (
-                  <EmptyState
-                    icon={WandSparklesIcon}
-                    title="No server logs yet"
-                    description="Bridge events appear here after the local server starts talking back."
-                  />
-                ) : (
-                  serverLogs.map((entry, index) => (
-                    <div
-                      key={`${entry}-${index}`}
-                      className="rounded-lg bg-muted/40 px-3 py-2"
-                    >
-                      {entry}
-                    </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </div>
-        </div>
+        </ScrollArea>
       </div>
     </div>
   )
