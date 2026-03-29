@@ -1,66 +1,37 @@
+import * as React from "react"
 import { AlertCircleIcon } from "lucide-react"
 
 import { ChatvoiceProvider, useChatvoice } from "@/lib/chatvoice-context"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppHeader } from "@/components/app-header"
+import { SettingsDialog } from "@/components/settings-dialog"
 import { ChatPage } from "@/pages/chat-page"
-import { ModerationPage } from "@/pages/moderation-page"
-import { SettingsPage } from "@/pages/settings-page"
-import { UsersPage } from "@/pages/users-page"
-import { VoicesPage } from "@/pages/voices-page"
 
 function DashboardLayout() {
-  const { ready, activePage, statusMessage } = useChatvoice()
+  const { ready, statusMessage } = useChatvoice()
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
 
   if (!ready) {
     return <div className="min-h-svh bg-background" />
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-12 items-center gap-2 border-b border-border px-4">
-          <SidebarTrigger />
-          <span className="text-sm font-medium capitalize">{activePage}</span>
-        </header>
-        <div className="flex-1 overflow-auto p-4 md:p-6">
-          {statusMessage ? (
-            <Alert className="mb-6">
-              <AlertCircleIcon />
-              <AlertTitle>Dashboard notice</AlertTitle>
-              <AlertDescription>{statusMessage}</AlertDescription>
-            </Alert>
-          ) : null}
-
-          <ActivePage page={activePage} />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="flex h-svh flex-col bg-background">
+      <AppHeader onSettingsClick={() => setSettingsOpen(true)} />
+      <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4 md:p-6">
+        {statusMessage ? (
+          <Alert className="mb-4 shrink-0">
+            <AlertCircleIcon />
+            <AlertTitle>Notice</AlertTitle>
+            <AlertDescription>{statusMessage}</AlertDescription>
+          </Alert>
+        ) : null}
+        <ChatPage />
+      </div>
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </div>
   )
-}
-
-function ActivePage({ page }: { page: string }) {
-  switch (page) {
-    case "chat":
-      return <ChatPage />
-    case "voices":
-      return <VoicesPage />
-    case "moderation":
-      return <ModerationPage />
-    case "users":
-      return <UsersPage />
-    case "settings":
-      return <SettingsPage />
-    default:
-      return <ChatPage />
-  }
 }
 
 export function App() {
