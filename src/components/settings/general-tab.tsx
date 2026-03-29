@@ -28,9 +28,9 @@ export function GeneralTab() {
       {/* Hero */}
       <div className="relative -mx-6 -mt-6 overflow-hidden px-6 pt-8 pb-6">
         {/* Background */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/[0.06] via-primary/[0.03] to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-primary/6 via-primary/3 to-transparent" />
         <div className="pointer-events-none absolute -top-20 -right-20 size-64 rounded-full bg-primary/[0.07] blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-16 size-48 rounded-full bg-primary/[0.04] blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 -left-16 size-48 rounded-full bg-primary/4 blur-3xl" />
 
         <div className="relative flex items-start gap-5">
           {/* Icon */}
@@ -62,7 +62,7 @@ export function GeneralTab() {
                 href="https://bsky.app/profile/rcw.lol"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md bg-foreground/[0.05] px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.1] hover:text-foreground"
+                className="inline-flex items-center gap-1.5 rounded-md bg-foreground/5 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/1 hover:text-foreground"
               >
                 <ExternalLinkIcon className="size-3" />
                 Bluesky
