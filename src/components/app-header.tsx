@@ -1,7 +1,7 @@
 import * as React from "react"
 import { CircleIcon, LogOutIcon, SettingsIcon } from "lucide-react"
 
-import logoSrc from "@/assets/logo.svg"
+import logoSrc from "/logo.png"
 import { useChatvoice } from "@/lib/chatvoice-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
