@@ -16,8 +16,14 @@ export function AppHeader({
 }: {
   onSettingsClick: () => void
 }) {
-  const { config, updateConfig, connectionState, startConnection, stopConnection, setStatusMessage } =
-    useChatvoice()
+  const {
+    config,
+    updateConfig,
+    connectionState,
+    startConnection,
+    stopConnection,
+    setStatusMessage,
+  } = useChatvoice()
 
   const connected = connectionState?.connected ?? false
   const channel = connectionState?.channel
@@ -28,7 +34,10 @@ export function AppHeader({
   React.useEffect(() => {
     if (!popoverOpen) return
     function handleClick(e: MouseEvent) {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node)
+      ) {
         setPopoverOpen(false)
       }
     }
@@ -43,7 +52,9 @@ export function AppHeader({
       startConnection(ch)
       setStatusMessage("Connecting to Twitch chat...")
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Connection failed")
+      setStatusMessage(
+        error instanceof Error ? error.message : "Connection failed"
+      )
     }
     setPopoverOpen(false)
   }
@@ -57,31 +68,31 @@ export function AppHeader({
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-4">
       <div className="flex items-center gap-2">
-        <img
-          src={logoSrc}
-          alt="Chatvoice"
-          className="h-6 w-auto dark:invert"
-        />
+        <img src={logoSrc} alt="Chatvoice" className="h-6 w-auto dark:invert" />
       </div>
       <div className="flex items-center gap-3">
         <div className="relative" ref={popoverRef}>
           <button
             type="button"
             onClick={() => setPopoverOpen(!popoverOpen)}
-            className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className={`flex items-center gap-2 rounded-md px-2.5 py-1 border text-sm text-muted-foreground transition-colors cursor-pointer ${
+              connected ? "border-green-500/50 bg-green-500/10 hover:bg-green-500/30" : "border-muted/50 hover:bg-muted/30"
+            }`}
           >
             <CircleIcon
               className={`size-2.5 shrink-0 fill-current ${
                 connected ? "text-green-500" : "text-muted-foreground/50"
               }`}
             />
-            <span className="hidden truncate sm:inline">
-              {connected ? `#${channel}` : "Offline"}
+            <span className={`hidden truncate sm:inline ${
+              connected ? "text-green-500" : "text-muted-foreground/50"
+            }`}>
+              {connected ? "Connected" : "Disconnected"}
             </span>
           </button>
 
           {popoverOpen && (
-            <div className="absolute right-0 top-full z-50 mt-1.5 w-72 rounded-lg border border-border bg-popover p-3 shadow-lg">
+            <div className="absolute top-full right-0 z-50 mt-1.5 w-72 rounded-lg border border-border bg-popover p-3 shadow-lg">
               {connected ? (
                 <div className="space-y-3">
                   <div className="text-sm">
