@@ -9,6 +9,7 @@ import {
   SettingsField,
   SettingsRange,
 } from "@/components/settings/settings-primitives"
+import { Link2, Zap, BotMessageSquare, Video, ShieldUser, Star } from "lucide-react"
 
 export function ModerationTab() {
   const { config, updateConfig } = useChatvoice()
@@ -50,6 +51,7 @@ export function ModerationTab() {
         <SettingsCheckbox
           title="Strip links from speech"
           description="Removes URLs before the message is spoken."
+          icon={Link2}
           checked={config.playback.stripLinks}
           onCheckedChange={(checked) =>
             updateConfig((current) => ({
@@ -61,6 +63,7 @@ export function ModerationTab() {
         <SettingsCheckbox
           title="Ignore command-style messages"
           description="Skips messages starting with ! or /."
+          icon={Zap}
           checked={config.playback.ignoreCommands}
           onCheckedChange={(checked) =>
             updateConfig((current) => ({
@@ -72,6 +75,7 @@ export function ModerationTab() {
         <SettingsCheckbox
           title="Skip common bots"
           description="Filters usernames that end with bot."
+          icon={BotMessageSquare}
           checked={config.playback.skipBots}
           onCheckedChange={(checked) =>
             updateConfig((current) => ({
@@ -83,6 +87,7 @@ export function ModerationTab() {
         <SettingsCheckbox
           title="Skip broadcaster messages"
           description="Useful when the broadcaster already narrates themselves."
+          icon={Video}
           checked={config.playback.skipBroadcaster}
           onCheckedChange={(checked) =>
             updateConfig((current) => ({
@@ -94,6 +99,7 @@ export function ModerationTab() {
         <SettingsCheckbox
           title="Skip moderator messages"
           description="Prevents mod actions and helper replies from being spoken."
+          icon={ShieldUser}
           checked={config.playback.skipModerators}
           onCheckedChange={(checked) =>
             updateConfig((current) => ({
@@ -105,6 +111,7 @@ export function ModerationTab() {
         <SettingsCheckbox
           title="Skip non-subscriber messages"
           description="Only allow subscribers to have their messages spoken."
+          icon={Star}
           checked={config.playback.skipSubscribers}
           onCheckedChange={(checked) =>
             updateConfig((current) => ({

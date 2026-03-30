@@ -40,7 +40,7 @@ export function VoicesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <SectionHeading
           title="Voice profiles"
           description="Saved voices that are randomly assigned to chatters."
@@ -48,6 +48,7 @@ export function VoicesTab() {
         <Button
           variant="outline"
           size="sm"
+          className="shrink-0"
           onClick={() =>
             updateConfig((current) => ({
               ...current,
@@ -63,7 +64,7 @@ export function VoicesTab() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-xl border border-border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -99,7 +100,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-28 text-sm"
+                      className="h-7 w-28 lg:min-w-28 lg:w-full text-sm"
                     />
                   </TableCell>
                   <TableCell>
@@ -129,7 +130,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-16 text-center text-sm"
+                      className="h-7 w-16 xl:min-w-16 xl:w-full text-center text-sm"
                     />
                   </TableCell>
                   <TableCell>
@@ -145,7 +146,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-16 text-center text-sm"
+                      className="h-7 w-16 xl:min-w-16 xl:w-full text-center text-sm"
                     />
                   </TableCell>
                   <TableCell>
@@ -161,7 +162,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-16 text-center text-sm"
+                      className="h-7 w-16 xl:min-w-16 xl:w-full text-center text-sm"
                     />
                   </TableCell>
                   <TableCell className="text-center">
@@ -244,7 +245,7 @@ function VoiceSelect({
 
   return (
     <Select value={value} onValueChange={onValueChange} open={open} onOpenChange={setOpen}>
-      <SelectTrigger className="h-7 w-44 text-sm">
+      <SelectTrigger className="h-7 w-40 xl:min-w-40 xl:w-full text-sm">
         <SelectValue
           placeholder={voicesLoading ? "Loading..." : "Select voice"}
         >

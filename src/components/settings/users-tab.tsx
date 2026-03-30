@@ -1,5 +1,5 @@
 import * as React from "react"
-import { PlusIcon } from "lucide-react"
+import { PlusIcon, ShieldBan, Trash2Icon } from "lucide-react"
 
 import {
   useChatvoice,
@@ -103,14 +103,14 @@ export function UsersTab() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-xl border border-border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
               <TableHead>Saved voice</TableHead>
               <TableHead>Last seen</TableHead>
-              <TableHead className="w-28">Actions</TableHead>
+              <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -126,10 +126,6 @@ export function UsersTab() {
               </TableRow>
             ) : (
               assignmentRows.map((assignment) => {
-                const profile = config.voiceProfiles.find(
-                  (vp) => vp.id === assignment.voiceProfileId
-                )
-
                 return (
                   <TableRow key={assignment.userName}>
                     <TableCell>
@@ -173,13 +169,13 @@ export function UsersTab() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatTimestamp(assignment.lastSeenAt)}
-                      {profile ? ` · ${profile.label}` : ""}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button
-                          variant="ghost"
-                          size="sm"
+                          variant="outline"
+                          size="icon-sm"
+                          className="text-destructive hover:text-destructive"
                           onClick={() => {
                             updateConfig((current) => ({
                               ...current,
@@ -197,11 +193,11 @@ export function UsersTab() {
                             }))
                           }}
                         >
-                          Block
+                          <ShieldBan />
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="sm"
+                          variant="outline"
+                          size="icon-sm"
                           onClick={() => {
                             updateConfig((current) => {
                               const next = { ...current.assignments }
@@ -210,7 +206,7 @@ export function UsersTab() {
                             })
                           }}
                         >
-                          Remove
+                          <Trash2Icon />
                         </Button>
                       </div>
                     </TableCell>

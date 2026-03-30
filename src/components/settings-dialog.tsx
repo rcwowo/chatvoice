@@ -8,7 +8,6 @@ import {
 } from "lucide-react"
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { GeneralTab } from "@/components/settings/general-tab"
 import { VoicesTab } from "@/components/settings/voices-tab"
 import { ModerationTab } from "@/components/settings/moderation-tab"
@@ -76,7 +75,7 @@ export function SettingsDialog({
           </nav>
 
           {/* Content */}
-          <ScrollArea className="min-h-0 flex-1">
+          <div className="min-h-0 min-w-0 flex-1 overflow-auto">
             <div className="p-6 mt-6">
               {activeTab === "general" && <GeneralTab />}
               {activeTab === "voices" && <VoicesTab />}
@@ -84,7 +83,7 @@ export function SettingsDialog({
               {activeTab === "users" && <UsersTab />}
               {activeTab === "backup" && <BackupTab />}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
