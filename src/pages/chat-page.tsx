@@ -211,22 +211,22 @@ export function ChatPage() {
           </TooltipProvider>
         </div>
 
-        <ScrollArea className="min-h-0 flex-1 rounded-xl border border-border">
-          <div className="min-h-full space-y-2 p-3">
-            {playbackQueue.length === 0 ? (
-              <div className="flex h-full items-center justify-center">
-                <EmptyState
-                  icon={ListOrdered}
-                  title="Queue is empty"
-                  description={
-                    playbackEnabled
-                      ? "New messages will be queued for speech."
-                      : "Speech is paused. Press play to resume."
-                  }
-                />
-              </div>
-            ) : (
-              playbackQueue.map((item, index) => (
+        {playbackQueue.length === 0 ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-border">
+            <EmptyState
+              icon={ListOrdered}
+              title="Queue is empty"
+              description={
+                playbackEnabled
+                  ? "New messages will be queued for speech."
+                  : "Speech is paused. Press play to resume."
+              }
+            />
+          </div>
+        ) : (
+          <ScrollArea className="min-h-0 flex-1 rounded-xl border border-border">
+            <div className="space-y-2 p-3">
+              {playbackQueue.map((item, index) => (
                 <div
                   key={item.id}
                   className={
@@ -245,10 +245,10 @@ export function ChatPage() {
                     {item.text}
                   </p>
                 </div>
-              ))
-            )}
-          </div>
-        </ScrollArea>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
       </div>
     </div>
   )
