@@ -143,7 +143,7 @@ export function AppHeader({
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onSettingsClick}>
+            <Button variant="outline" size="icon" onClick={onSettingsClick}>
               <SettingsIcon className="size-4" />
               <span className="sr-only">Settings</span>
             </Button>

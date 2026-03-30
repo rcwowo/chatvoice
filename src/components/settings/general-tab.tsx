@@ -20,13 +20,15 @@ import {
   SettingsToggle,
 } from "@/components/settings/settings-primitives"
 
+const version: string = __APP_VERSION__
+
 export function GeneralTab() {
   const { config, updateConfig } = useChatvoice()
 
   return (
     <div className="space-y-6">
       {/* Hero */}
-      <div className="relative -mx-6 -mt-6 overflow-hidden px-6 pt-8 pb-6">
+      <div className="relative -mx-6 -mt-12 overflow-hidden px-6 pt-8 pb-6">
         {/* Background */}
         <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-primary/6 via-primary/3 to-transparent" />
         <div className="pointer-events-none absolute -top-20 -right-20 size-64 rounded-full bg-primary/[0.07] blur-3xl" />
@@ -43,9 +45,10 @@ export function GeneralTab() {
           <div className="min-w-0 flex-1">
             {/* Logo */}
             <img src={logoSrc} alt="Chatvoice" className="h-6 dark:invert" />
+            <p className="text-xs text-muted-foreground mt-1">Version {version}</p>
             <p className="mt-3 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
-              Connects anonymously to any Twitch channel and reads chat aloud
-              via the Web Speech API — no server, no accounts, fully local.
+              Let your chat have a voice! Read Twitch chat messages aloud using your
+              browser's built-in speech synthesis capabilities.
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">

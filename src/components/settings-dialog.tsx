@@ -48,7 +48,7 @@ export function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[85vh] w-[75vw] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
+      <DialogContent className="flex h-[85vh] w-[80vw] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
         <DialogTitle className="sr-only">Settings</DialogTitle>
         <div className="flex min-h-0 flex-1">
           {/* Sidebar */}
@@ -77,7 +77,7 @@ export function SettingsDialog({
 
           {/* Content */}
           <ScrollArea className="min-h-0 flex-1">
-            <div className="p-6">
+            <div className="p-6 mt-6">
               {activeTab === "general" && <GeneralTab />}
               {activeTab === "voices" && <VoicesTab />}
               {activeTab === "moderation" && <ModerationTab />}

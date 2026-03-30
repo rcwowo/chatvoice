@@ -67,27 +67,35 @@ export function SettingsToggle({
 }
 
 export function SettingsCheckbox({
+  icon: Icon,
   title,
   description,
   checked,
   onCheckedChange,
 }: {
+  icon?: React.ComponentType<{ className?: string }>
   title: string
   description: string
   checked: boolean
   onCheckedChange: (checked: boolean) => void
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background px-3 py-2.5">
+    <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-border bg-background px-3 py-2.5">
+      <div className="flex items-start gap-3">
+        {Icon && (
+          <div className="rounded-md border border-border bg-muted/40 p-1.5">
+            <Icon className="size-3.5 text-muted-foreground" />
+          </div>
+        )}
+        <div>
+          <div className="text-sm font-medium">{title}</div>
+          <div className="text-xs text-muted-foreground">{description}</div>
+        </div>
+      </div>
       <Checkbox
         checked={checked}
         onCheckedChange={(value) => onCheckedChange(value === true)}
-        className="mt-0.5"
       />
-      <div>
-        <div className="text-sm font-medium">{title}</div>
-        <div className="text-xs text-muted-foreground">{description}</div>
-      </div>
     </label>
   )
 }
