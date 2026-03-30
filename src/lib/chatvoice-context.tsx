@@ -276,9 +276,14 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     }
 
     utterance.onerror = (event) => {
-      if (event.error !== "canceled") {
-        toast.error(`Speech failed: ${event.error}`)
+      // "canceled" (Safari) and "interrupted" (Chrome/Edge) are fired when
+      // speechSynthesis.cancel() is called from skipCurrent / clearQueue.
+      // Those callers already handle queue removal, so bail out here to
+      // avoid removing an extra item (double-skip bug).
+      if (event.error === "canceled" || event.error === "interrupted") {
+        return
       }
+      toast.error(`Speech failed: ${event.error}`)
       setPlaybackQueue((current) => current.slice(1))
       setIsPlayingQueue(false)
     }
