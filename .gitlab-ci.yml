@@ -1,0 +1,8 @@
+include:
+    # Scans source code for known security vulnerabilities.
+    # https://gitlab.com/explore/catalog/components/sast
+    - component: gitlab.com/components/sast/sast@3.4.0
+
+    # https://gitlab.com/explore/catalog/components/secret-detection
+    # Scans source code for leaked secrets/keys.
+    - component: $CI_SERVER_FQDN/components/secret-detection/secret-detection@2.3.0
