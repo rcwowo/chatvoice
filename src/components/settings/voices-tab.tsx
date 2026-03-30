@@ -2,7 +2,11 @@ import * as React from "react"
 import { PlusIcon, Trash2Icon } from "lucide-react"
 
 import { useChatvoice } from "@/lib/chatvoice-context"
-import { type VoiceProfile, createVoiceProfile } from "@/lib/chatvoice-config"
+import {
+  type VoiceProfile,
+  createVoiceProfile,
+} from "@/lib/chatvoice-config"
+import { type BrowserVoice } from "@/hooks/use-browser-voices"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -99,7 +103,7 @@ export function VoicesTab() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Select
+                    <VoiceSelect
                       value={profile.voice}
                       onValueChange={(value) =>
                         patchVoiceProfile(
@@ -108,22 +112,9 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                    >
-                      <SelectTrigger className="h-7 w-44 text-sm">
-                        <SelectValue
-                          placeholder={
-                            voicesLoading ? "Loading..." : "Select voice"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {voiceOptions.map((voice) => (
-                          <SelectItem key={voice.name} value={voice.name}>
-                            {voice.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      voiceOptions={voiceOptions}
+                      voicesLoading={voicesLoading}
+                    />
                   </TableCell>
                   <TableCell>
                     <Input
@@ -227,4 +218,48 @@ function patchVoiceProfile(
       profile.id === id ? { ...profile, ...patch } : profile
     ),
   }))
+}
+
+/**
+ * Defers rendering the (potentially huge) voice option list until the dropdown
+ * is actually opened. This avoids mounting hundreds of Radix SelectItems per
+ * profile row when the tab first appears.
+ */
+function VoiceSelect({
+  value,
+  onValueChange,
+  voiceOptions,
+  voicesLoading,
+}: {
+  value: string
+  onValueChange: (value: string) => void
+  voiceOptions: BrowserVoice[]
+  voicesLoading: boolean
+}) {
+  const [open, setOpen] = React.useState(false)
+
+  const selectedLabel = value
+    ? voiceOptions.find((v) => v.name === value)?.label
+    : undefined
+
+  return (
+    <Select value={value} onValueChange={onValueChange} open={open} onOpenChange={setOpen}>
+      <SelectTrigger className="h-7 w-44 text-sm">
+        <SelectValue
+          placeholder={voicesLoading ? "Loading..." : "Select voice"}
+        >
+          {selectedLabel}
+        </SelectValue>
+      </SelectTrigger>
+      {open && (
+        <SelectContent>
+          {voiceOptions.map((voice) => (
+            <SelectItem key={voice.name} value={voice.name}>
+              {voice.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      )}
+    </Select>
+  )
 }
