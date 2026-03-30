@@ -1,11 +1,11 @@
 import * as React from "react"
 import {
+  ListOrdered,
   MessagesSquareIcon,
   PauseIcon,
   PlayIcon,
   SkipForwardIcon,
   Trash2Icon,
-  UserRoundIcon,
 } from "lucide-react"
 
 import { useChatvoice } from "@/lib/chatvoice-context"
@@ -57,10 +57,10 @@ export function ChatPage() {
   }, [config, updateConfig])
 
   return (
-    <div className="flex h-full min-h-0 gap-4">
+    <div className="sm:flex h-full min-h-0 gap-4">
       {/* -- Chat log -- */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <h2 className="mb-1 shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <div className="flex min-h-0 min-w-0 md:flex-4 flex-col">
+        <h2 className="mb-1 h-5 shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
           Chat
           {connectionState.connected && connectionState.channel ? (
             <span className="ml-1.5 font-normal text-muted-foreground/70 normal-case">
@@ -72,9 +72,9 @@ export function ChatPage() {
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <EmptyState
-                icon={UserRoundIcon}
-                title="No chat traffic yet"
-                description="Once connected, messages from Twitch will appear here."
+                icon={MessagesSquareIcon}
+                title="No messages yet"
+                description="Once connected, chat messages will appear here."
               />
             </div>
           ) : (
@@ -145,8 +145,8 @@ export function ChatPage() {
       </div>
 
       {/* Queue panel */}
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-1 flex shrink-0 items-center gap-1">
+      <div className="flex min-h-0 flex-2 flex-col">
+        <div className="mb-1 flex h-5 shrink-0 items-center gap-1">
           <h2 className="flex-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Queue
             {playbackQueue.length > 0 ? (
@@ -212,17 +212,19 @@ export function ChatPage() {
         </div>
 
         <ScrollArea className="min-h-0 flex-1 rounded-xl border border-border">
-          <div className="space-y-2 p-3">
+          <div className="min-h-full space-y-2 p-3">
             {playbackQueue.length === 0 ? (
-              <EmptyState
-                icon={MessagesSquareIcon}
-                title="Queue is empty"
-                description={
-                  playbackEnabled
-                    ? "Incoming chat messages will be queued for speech."
-                    : "Speech is paused. Press play to resume."
-                }
-              />
+              <div className="flex h-full items-center justify-center">
+                <EmptyState
+                  icon={ListOrdered}
+                  title="Queue is empty"
+                  description={
+                    playbackEnabled
+                      ? "New messages will be queued for speech."
+                      : "Speech is paused. Press play to resume."
+                  }
+                />
+              </div>
             ) : (
               playbackQueue.map((item, index) => (
                 <div
@@ -234,12 +236,12 @@ export function ChatPage() {
                   }
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="font-medium">
+                    <div className="font-medium text-sm">
                       {item.assignment.displayName}
                     </div>
                     <Badge variant="outline">{item.profile.label}</Badge>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     {item.text}
                   </p>
                 </div>

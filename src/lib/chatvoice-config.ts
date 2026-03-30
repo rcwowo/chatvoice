@@ -45,6 +45,7 @@ const twitchSchema = z.object({
   clientId: z.string(),
   accessToken: z.string(),
   readOnly: z.boolean(),
+  autoConnect: z.boolean(),
 })
 
 const appConfigSchema = z.object({
@@ -74,15 +75,6 @@ export type BackupEnvelope = z.infer<typeof backupEnvelopeSchema>
 
 const DEFAULT_VOICE_PROFILES: VoiceProfile[] = [
   {
-    id: "voice-ava",
-    label: "Ava",
-    voice: "en-US-AvaNeural",
-    rate: 0,
-    pitch: 0,
-    volume: 0,
-    enabled: true,
-  },
-  {
     id: "voice-brian",
     label: "Brian",
     voice: "en-US-BrianNeural",
@@ -90,25 +82,7 @@ const DEFAULT_VOICE_PROFILES: VoiceProfile[] = [
     pitch: -10,
     volume: 0,
     enabled: true,
-  },
-  {
-    id: "voice-sonia",
-    label: "Sonia",
-    voice: "en-GB-SoniaNeural",
-    rate: 5,
-    pitch: 5,
-    volume: 0,
-    enabled: true,
-  },
-  {
-    id: "voice-natasha",
-    label: "Natasha",
-    voice: "en-AU-NatashaNeural",
-    rate: 3,
-    pitch: 8,
-    volume: 0,
-    enabled: true,
-  },
+  }
 ]
 
 export function createDefaultConfig(): AppConfig {
@@ -120,6 +94,7 @@ export function createDefaultConfig(): AppConfig {
       clientId: "",
       accessToken: "",
       readOnly: true,
+      autoConnect: true,
     },
     playback: {
       enabled: true,

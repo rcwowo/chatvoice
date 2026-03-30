@@ -1,5 +1,6 @@
 import * as React from "react"
 import { CloudDownloadIcon, CloudUploadIcon } from "lucide-react"
+import { toast } from "sonner"
 
 import { useChatvoice } from "@/lib/chatvoice-context"
 import { exportConfigBackup } from "@/lib/chatvoice-config"
@@ -8,7 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import { SectionHeading } from "@/components/settings/settings-primitives"
 
 export function BackupTab() {
-  const { config, restoreBackup, setStatusMessage } = useChatvoice()
+  const { config, restoreBackup } = useChatvoice()
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
   const downloadBackup = () => {
@@ -31,9 +32,9 @@ export function BackupTab() {
     try {
       const payload = await file.text()
       restoreBackup(payload)
-      setStatusMessage("Backup restored successfully.")
+      toast.success("Backup restored successfully.")
     } catch (error) {
-      setStatusMessage(
+      toast.error(
         error instanceof Error ? error.message : "Backup restore failed"
       )
     } finally {

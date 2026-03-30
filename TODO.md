@@ -1,4 +1,13 @@
-# Settings Popup
+# Bugs
+[ ] Skip button actually skips two messages (speech failed: interupted)
+[ ] Center the "Queue is empty" info to match the chat "No chat traffic yet" info
+[ ] Fix delay in loading voices tab
 
-## General Tab
-- [] Make the about project much more "hero-like"
+# Enhancements
+[ ] Newest chat messages always at the bottom (old messages rise)
+[ ] Implement chat badges and emotes
+
+# Future Features (don't implement yet)
+[ ] Toggleable chat commands
+[ ] Sound effects
+[ ] Word replacements

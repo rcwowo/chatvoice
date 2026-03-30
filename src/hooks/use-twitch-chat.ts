@@ -8,8 +8,15 @@ import {
 
 const MESSAGE_LIMIT = 60
 
+type PendingConnect = {
+  channel: string
+  resolve: (channel: string) => void
+  reject: (err: Error) => void
+}
+
 export function useTwitchChat() {
   const clientRef = React.useRef<TwitchChatClient | null>(null)
+  const pendingConnectRef = React.useRef<PendingConnect | null>(null)
   const [connectionState, setConnectionState] =
     React.useState<TwitchConnectionState>({
       connected: false,
@@ -38,6 +45,10 @@ export function useTwitchChat() {
             connecting: false,
             lastError: null,
           }))
+          if (pendingConnectRef.current) {
+            pendingConnectRef.current.resolve(pendingConnectRef.current.channel)
+            pendingConnectRef.current = null
+          }
           break
         case "disconnected":
           setConnectionState((prev) => ({
@@ -46,6 +57,12 @@ export function useTwitchChat() {
             connecting: false,
             lastError: event.reason,
           }))
+          if (pendingConnectRef.current) {
+            pendingConnectRef.current.reject(
+              new Error(event.reason ?? "Disconnected")
+            )
+            pendingConnectRef.current = null
+          }
           break
         case "message":
           setMessages((current) =>
@@ -61,13 +78,17 @@ export function useTwitchChat() {
             ...prev,
             lastError: event.text,
           }))
+          if (pendingConnectRef.current) {
+            pendingConnectRef.current.reject(new Error(event.text))
+            pendingConnectRef.current = null
+          }
           break
       }
     })
 
     clientRef.current = client
     return client
-  }, [appendLog])
+  }, [appendLog]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Disconnect on unmount
   React.useEffect(() => {
@@ -77,14 +98,25 @@ export function useTwitchChat() {
   }, [])
 
   const startConnection = React.useCallback(
-    (channel: string) => {
+    (channel: string): Promise<string> => {
+      // Reject any previously pending connect
+      if (pendingConnectRef.current) {
+        pendingConnectRef.current.reject(new Error("New connection started"))
+        pendingConnectRef.current = null
+      }
+
+      const normalizedChannel = channel.trim().replace(/^#/, "").toLowerCase()
       setConnectionState({
         connected: false,
         connecting: true,
-        channel: channel.trim().replace(/^#/, "").toLowerCase(),
+        channel: normalizedChannel,
         lastError: null,
       })
-      getClient().connect(channel)
+
+      return new Promise<string>((resolve, reject) => {
+        pendingConnectRef.current = { channel: normalizedChannel, resolve, reject }
+        getClient().connect(channel)
+      })
     },
     [getClient]
   )

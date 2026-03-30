@@ -1,5 +1,6 @@
 import * as React from "react"
 import { CircleIcon, LogOutIcon, SettingsIcon } from "lucide-react"
+import { toast } from "sonner"
 
 import logoSrc from "/logo.png"
 import { useChatvoice } from "@/lib/chatvoice-context"
@@ -22,7 +23,6 @@ export function AppHeader({
     connectionState,
     startConnection,
     stopConnection,
-    setStatusMessage,
   } = useChatvoice()
 
   const connected = connectionState?.connected ?? false
@@ -48,20 +48,18 @@ export function AppHeader({
   const handleConnect = () => {
     const ch = config.twitch.channel.trim()
     if (!ch) return
-    try {
-      startConnection(ch)
-      setStatusMessage("Connecting to Twitch chat...")
-    } catch (error) {
-      setStatusMessage(
-        error instanceof Error ? error.message : "Connection failed"
-      )
-    }
     setPopoverOpen(false)
+    toast.promise(startConnection(ch), {
+      loading: `Connecting to #${ch}…`,
+      success: (channel) => `Connected to #${channel}`,
+      error: (err) =>
+        err instanceof Error ? err.message : "Connection failed",
+    })
   }
 
   const handleDisconnect = () => {
     stopConnection()
-    setStatusMessage("Disconnected from Twitch chat.")
+    toast.info("Disconnected from Twitch chat.")
     setPopoverOpen(false)
   }
 

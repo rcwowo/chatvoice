@@ -1,15 +1,13 @@
 import * as React from "react"
-import { AlertCircleIcon } from "lucide-react"
 
 import { ChatvoiceProvider, useChatvoice } from "@/lib/chatvoice-context"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppHeader } from "@/components/app-header"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { ChatPage } from "@/pages/chat-page"
 
 function DashboardLayout() {
-  const { ready, statusMessage } = useChatvoice()
+  const { ready } = useChatvoice()
   const [settingsOpen, setSettingsOpen] = React.useState(false)
 
   if (!ready) {
@@ -20,13 +18,6 @@ function DashboardLayout() {
     <div className="flex h-svh flex-col bg-background">
       <AppHeader onSettingsClick={() => setSettingsOpen(true)} />
       <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4 md:p-6">
-        {statusMessage ? (
-          <Alert className="mb-4 shrink-0">
-            <AlertCircleIcon />
-            <AlertTitle>Notice</AlertTitle>
-            <AlertDescription>{statusMessage}</AlertDescription>
-          </Alert>
-        ) : null}
         <ChatPage />
       </div>
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />

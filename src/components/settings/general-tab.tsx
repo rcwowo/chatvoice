@@ -1,9 +1,9 @@
 import {
   ExternalLinkIcon,
   HeartIcon,
-  Mic2Icon,
   MonitorIcon,
   MoonIcon,
+  PlugIcon,
   SunIcon,
 } from "lucide-react"
 
@@ -115,17 +115,17 @@ export function GeneralTab() {
 
       <Separator />
 
-      <SectionHeading title="Playback" />
+      <SectionHeading title="Connection" />
       <div className="space-y-3">
         <SettingsToggle
-          icon={Mic2Icon}
-          title="Enable speech output"
-          description="Pauses queue playback without disconnecting from chat."
-          checked={config.playback.enabled}
+          icon={PlugIcon}
+          title="Auto-connect on startup"
+          description="Automatically reconnect to the last channel when the app opens."
+          checked={config.twitch.autoConnect}
           onCheckedChange={(checked) =>
             updateConfig((current) => ({
               ...current,
-              playback: { ...current.playback, enabled: checked },
+              twitch: { ...current.twitch, autoConnect: checked },
             }))
           }
         />

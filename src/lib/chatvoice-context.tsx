@@ -1,4 +1,5 @@
 import * as React from "react"
+import { toast } from "sonner"
 
 import { useChatvoiceConfig } from "@/hooks/use-chatvoice-config"
 import { useTwitchChat } from "@/hooks/use-twitch-chat"
@@ -62,7 +63,7 @@ export type ChatvoiceContextValue = {
   connectionState: TwitchConnectionState
   messages: TwitchChatMessage[]
   logs: string[]
-  startConnection: (channel: string) => void
+  startConnection: (channel: string) => Promise<string>
   stopConnection: () => void
 
   // Playback queue
@@ -76,10 +77,6 @@ export type ChatvoiceContextValue = {
   // Navigation
   activePage: PageId
   setActivePage: (page: PageId) => void
-
-  // Status
-  statusMessage: string | null
-  setStatusMessage: (message: string | null) => void
 }
 
 const ChatvoiceContext = React.createContext<ChatvoiceContextValue | null>(null)
@@ -103,7 +100,6 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   const { voices, loading: voicesLoading } = useBrowserVoices()
 
   const [activePage, setActivePage] = React.useState<PageId>("chat")
-  const [statusMessage, setStatusMessage] = React.useState<string | null>(null)
   const [isPlayingQueue, setIsPlayingQueue] = React.useState(false)
   const [playbackQueue, setPlaybackQueue] = React.useState<PlaybackQueueItem[]>(
     []
@@ -125,6 +121,27 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     playbackEnabledRef.current = config.playback.enabled
   }, [config.playback.enabled])
+
+  // -----------------------------------------------------------------------
+  // Autoconnect to previously saved channel on startup
+  // -----------------------------------------------------------------------
+
+  const autoConnectedRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (!ready || autoConnectedRef.current) return
+    autoConnectedRef.current = true
+
+    const channel = config.twitch.channel.trim()
+    if (channel && config.twitch.autoConnect && !connectionState.connected && !connectionState.connecting) {
+      toast.promise(startConnection(channel), {
+        loading: `Connecting to #${channel}…`,
+        success: (ch) => `Connected to #${ch}`,
+        error: (err) =>
+          err instanceof Error ? err.message : "Connection failed",
+      })
+    }
+  }, [ready]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // -----------------------------------------------------------------------
   // Enqueue new chat messages as they arrive
@@ -235,7 +252,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
 
     const synth = window.speechSynthesis
     if (!synth) {
-      setStatusMessage("SpeechSynthesis is not available in this browser.")
+      toast.error("SpeechSynthesis is not available in this browser.")
       setPlaybackQueue((current) => current.slice(1))
       return
     }
@@ -260,7 +277,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
 
     utterance.onerror = (event) => {
       if (event.error !== "canceled") {
-        setStatusMessage(`Speech failed: ${event.error}`)
+        toast.error(`Speech failed: ${event.error}`)
       }
       setPlaybackQueue((current) => current.slice(1))
       setIsPlayingQueue(false)
@@ -310,8 +327,6 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       clearQueue,
       activePage,
       setActivePage,
-      statusMessage,
-      setStatusMessage,
     }),
     [
       config,
@@ -331,7 +346,6 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       skipCurrent,
       clearQueue,
       activePage,
-      statusMessage,
     ]
   )
 
