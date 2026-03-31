@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { getAssignment, putAssignment } from "@/lib/assignments-db"
 
 export const CHATVOICE_STORAGE_KEY = "chatvoice::config"
 export const CHATVOICE_SCHEMA_VERSION = 1
@@ -27,6 +28,8 @@ const voiceAssignmentSchema = z.object({
 const playbackSchema = z.object({
   enabled: z.boolean(),
   textTemplate: z.string().min(1),
+  autoAssignVoices: z.boolean().default(true),
+  defaultVoiceProfileId: z.string().default(""),
   ignoreCommands: z.boolean(),
   skipBots: z.boolean(),
   skipBroadcaster: z.boolean(),
@@ -54,7 +57,9 @@ const appConfigSchema = z.object({
   twitch: twitchSchema,
   playback: playbackSchema,
   voiceProfiles: z.array(voiceProfileSchema).min(1),
-  assignments: z.record(z.string(), voiceAssignmentSchema),
+  // Assignments are now stored in IndexedDB. This field is only used during
+  // backup/restore and migration. It is NOT kept in the runtime config.
+  assignments: z.record(z.string(), voiceAssignmentSchema).optional(),
 })
 
 const backupEnvelopeSchema = z.object({
@@ -99,6 +104,8 @@ export function createDefaultConfig(): AppConfig {
     playback: {
       enabled: true,
       textTemplate: "{displayName} says {message}",
+      autoAssignVoices: true,
+      defaultVoiceProfileId: "",
       ignoreCommands: true,
       skipBots: true,
       skipBroadcaster: false,
@@ -112,7 +119,6 @@ export function createDefaultConfig(): AppConfig {
       blockedTerms: [],
     },
     voiceProfiles: DEFAULT_VOICE_PROFILES,
-    assignments: {},
   }
 }
 
@@ -145,21 +151,48 @@ export function saveConfig(config: AppConfig) {
   window.localStorage.setItem(CHATVOICE_STORAGE_KEY, JSON.stringify(normalized))
 }
 
-export function exportConfigBackup(config: AppConfig): string {
+export function exportConfigBackup(
+  config: AppConfig,
+  assignments: VoiceAssignment[]
+): string {
+  const configWithAssignments = {
+    ...normalizeConfig(config),
+    assignments: Object.fromEntries(
+      assignments.map((a) => [a.userName, a])
+    ),
+  }
+
   const envelope: BackupEnvelope = {
     app: "chatvoice",
     appVersion: CHATVOICE_APP_VERSION,
     exportedAt: new Date().toISOString(),
     schemaVersion: CHATVOICE_SCHEMA_VERSION,
-    data: normalizeConfig(config),
+    data: configWithAssignments,
   }
 
   return JSON.stringify(envelope, null, 2)
 }
 
-export function importConfigBackup(payload: string): AppConfig {
+/**
+ * Parse a backup payload. Returns the config and extracted assignments
+ * separately so the caller can persist assignments into IndexedDB.
+ */
+export function importConfigBackup(payload: string): {
+  config: AppConfig
+  assignments: VoiceAssignment[]
+} {
   const parsed = JSON.parse(payload)
-  return migrateConfig(parsed)
+  const config = migrateConfig(parsed)
+  const assignments = config.assignments
+    ? Object.values(config.assignments)
+    : []
+
+  // Strip assignments from the runtime config
+  const { assignments: _, ...cleanConfig } = config
+  return {
+    config: cleanConfig as AppConfig,
+    assignments,
+  }
 }
 
 export function migrateConfig(input: unknown): AppConfig {
@@ -219,19 +252,18 @@ export function createVoiceProfile(seed: number, voice?: string): VoiceProfile {
   }
 }
 
-export function ensureVoiceAssignment(
+export async function ensureVoiceAssignment(
   config: AppConfig,
   userName: string,
   displayName: string
-): { config: AppConfig; assignment: VoiceAssignment | null; created: boolean } {
+): Promise<{ assignment: VoiceAssignment | null; created: boolean }> {
   const normalizedUserName = normalizeLookupValue(userName)
   const now = new Date().toISOString()
-  const existing = config.assignments[normalizedUserName]
-  const availableVoiceProfileId = pickRandomVoiceProfileId(config.voiceProfiles)
+  const existing = await getAssignment(normalizedUserName)
 
-  if (!availableVoiceProfileId) {
-    return { config, assignment: null, created: false }
-  }
+  // When autoAssignVoices is disabled, only update existing assignments or
+  // fall back to the default voice (never create a random assignment).
+  const autoAssign = config.playback.autoAssignVoices
 
   if (
     existing &&
@@ -243,17 +275,39 @@ export function ensureVoiceAssignment(
       lastSeenAt: now,
     }
 
+    await putAssignment(updatedAssignment)
+    return { assignment: updatedAssignment, created: false }
+  }
+
+  if (!autoAssign) {
+    // Use the configured default voice, or fall back to first enabled profile
+    const defaultId =
+      config.playback.defaultVoiceProfileId &&
+      hasVoiceProfile(config.voiceProfiles, config.playback.defaultVoiceProfileId)
+        ? config.playback.defaultVoiceProfileId
+        : pickRandomVoiceProfileId(config.voiceProfiles)
+
+    if (!defaultId) {
+      return { assignment: null, created: false }
+    }
+
+    // Return a transient assignment (not persisted) so the voice plays
+    // but we don't store a permanent mapping for this user.
     return {
-      config: {
-        ...config,
-        assignments: {
-          ...config.assignments,
-          [normalizedUserName]: updatedAssignment,
-        },
+      assignment: {
+        userName: normalizedUserName,
+        displayName: displayName || userName,
+        voiceProfileId: defaultId,
+        createdAt: now,
+        lastSeenAt: now,
       },
-      assignment: updatedAssignment,
       created: false,
     }
+  }
+
+  const availableVoiceProfileId = pickRandomVoiceProfileId(config.voiceProfiles)
+  if (!availableVoiceProfileId) {
+    return { assignment: null, created: false }
   }
 
   const assignment: VoiceAssignment = {
@@ -264,17 +318,8 @@ export function ensureVoiceAssignment(
     lastSeenAt: now,
   }
 
-  return {
-    config: {
-      ...config,
-      assignments: {
-        ...config.assignments,
-        [normalizedUserName]: assignment,
-      },
-    },
-    assignment,
-    created: true,
-  }
+  await putAssignment(assignment)
+  return { assignment, created: true }
 }
 
 export function pickRandomVoiceProfileId(
@@ -334,8 +379,12 @@ function normalizeConfig(config: AppConfig): AppConfig {
       ? config.voiceProfiles
       : DEFAULT_VOICE_PROFILES
   const fallbackVoiceProfileId = pickRandomVoiceProfileId(nextVoiceProfiles)
+
+  // Assignments are optional — they only appear during backup/restore.
+  // Normalize them if present so the backup data is clean.
+  const rawAssignments = config.assignments ?? {}
   const nextAssignments = Object.fromEntries(
-    Object.entries(config.assignments).map(([key, assignment]) => {
+    Object.entries(rawAssignments).map(([key, assignment]) => {
       const normalizedKey = normalizeLookupValue(key)
 
       return [
@@ -359,7 +408,9 @@ function normalizeConfig(config: AppConfig): AppConfig {
     ...config,
     updatedAt: config.updatedAt || new Date().toISOString(),
     voiceProfiles: nextVoiceProfiles,
-    assignments: nextAssignments,
+    assignments: Object.keys(nextAssignments).length > 0
+      ? nextAssignments
+      : undefined,
   }
 }
 

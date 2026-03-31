@@ -4,6 +4,7 @@ import { toast } from "sonner"
 
 import { useChatvoice } from "@/lib/chatvoice-context"
 import { exportConfigBackup } from "@/lib/chatvoice-config"
+import { getAllAssignments, clearAssignments } from "@/lib/assignments-db"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SectionHeading } from "@/components/settings/settings-primitives"
@@ -12,8 +13,9 @@ export function BackupTab() {
   const { config, restoreBackup } = useChatvoice()
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
-  const downloadBackup = () => {
-    const backup = exportConfigBackup(config)
+  const downloadBackup = async () => {
+    const assignments = await getAllAssignments()
+    const backup = exportConfigBackup(config, assignments)
     const blob = new Blob([backup], { type: "application/json" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
@@ -31,7 +33,7 @@ export function BackupTab() {
 
     try {
       const payload = await file.text()
-      restoreBackup(payload)
+      await restoreBackup(payload)
       toast.success("Backup restored successfully.")
     } catch (error) {
       toast.error(
@@ -83,12 +85,13 @@ export function BackupTab() {
       <SectionHeading title="Danger zone" />
       <Button
         variant="destructive"
-        onClick={() => {
+        onClick={async () => {
           if (
             window.confirm(
               "This will reset ALL settings to defaults. This cannot be undone. Continue?"
             )
           ) {
+            await clearAssignments()
             localStorage.clear()
             window.location.reload()
           }

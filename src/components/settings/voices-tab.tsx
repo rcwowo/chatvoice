@@ -1,5 +1,5 @@
 import * as React from "react"
-import { PlusIcon, Trash2Icon } from "lucide-react"
+import { PlusIcon, ShuffleIcon, Trash2Icon } from "lucide-react"
 
 import { useChatvoice } from "@/lib/chatvoice-context"
 import {
@@ -25,7 +25,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { SectionHeading } from "@/components/settings/settings-primitives"
+import {
+  SectionHeading,
+  SettingsToggle,
+  SettingsField,
+} from "@/components/settings/settings-primitives"
 
 export function VoicesTab() {
   const { config, updateConfig, voices, voicesLoading } = useChatvoice()
@@ -40,6 +44,57 @@ export function VoicesTab() {
 
   return (
     <div className="space-y-4">
+      {/* Voice assignment settings */}
+      <SectionHeading
+        title="Voice assignment"
+        description="Control how voices are given to new chatters."
+      />
+
+      <SettingsToggle
+        icon={ShuffleIcon}
+        title="Auto-assign voices"
+        description="Randomly assign and save a voice for each new chatter. When off, unassigned chatters use the default voice below without saving."
+        checked={config.playback.autoAssignVoices}
+        onCheckedChange={(checked) =>
+          updateConfig((current) => ({
+            ...current,
+            playback: { ...current.playback, autoAssignVoices: checked },
+          }))
+        }
+      />
+
+      {!config.playback.autoAssignVoices && (
+        <SettingsField label="Default voice for unassigned chatters">
+          <Select
+            value={config.playback.defaultVoiceProfileId || "__random__"}
+            onValueChange={(value) =>
+              updateConfig((current) => ({
+                ...current,
+                playback: {
+                  ...current.playback,
+                  defaultVoiceProfileId:
+                    value === "__random__" ? "" : value,
+                },
+              }))
+            }
+          >
+            <SelectTrigger className="w-full max-w-xs">
+              <SelectValue placeholder="Random (from enabled)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__random__">
+                Random (from enabled)
+              </SelectItem>
+              {config.voiceProfiles.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingsField>
+      )}
+
       <div className="flex items-center justify-between gap-2">
         <SectionHeading
           title="Voice profiles"
@@ -179,7 +234,7 @@ export function VoicesTab() {
                   </TableCell>
                   <TableCell>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon-sm"
                       className="text-destructive hover:text-destructive"
                       onClick={() =>
@@ -200,10 +255,6 @@ export function VoicesTab() {
           </TableBody>
         </Table>
       </div>
-
-      <p className="text-xs text-muted-foreground">
-        Random assignment only uses enabled profiles.
-      </p>
     </div>
   )
 }

@@ -113,6 +113,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   // Refs so the speech consumer can read current state without re-triggering
   const playbackQueueRef = React.useRef(playbackQueue)
   const playbackEnabledRef = React.useRef(config.playback.enabled)
+  const lastSpokenMessageIdRef = React.useRef(lastSpokenMessageId)
 
   React.useEffect(() => {
     playbackQueueRef.current = playbackQueue
@@ -152,88 +153,97 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    const nextQueueItems: PlaybackQueueItem[] = []
-    let nextConfig = config
-    let configChanged = false
-
     // Messages are in chronological order (oldest first, newest last).
     // Find new messages that come after the last one we processed.
     let startIdx = 0
-    if (lastSpokenMessageId) {
-      const idx = messages.findIndex((m) => m.id === lastSpokenMessageId)
+    if (lastSpokenMessageIdRef.current) {
+      const idx = messages.findIndex((m) => m.id === lastSpokenMessageIdRef.current)
       startIdx = idx === -1 ? messages.length : idx + 1
     }
 
-    for (let i = startIdx; i < messages.length; i++) {
-      const message = messages[i]
-
-      const decision = shouldSpeakMessage(message, config)
-      if (!decision.allowed) {
-        continue
-      }
-
-      const ensured = ensureVoiceAssignment(
-        nextConfig,
-        message.userName,
-        message.displayName
-      )
-
-      nextConfig = ensured.config
-      configChanged = configChanged || ensured.created
-
-      if (!ensured.assignment) {
-        continue
-      }
-
-      const profile = nextConfig.voiceProfiles.find(
-        (voiceProfile) => voiceProfile.id === ensured.assignment?.voiceProfileId
-      )
-
-      if (!profile) {
-        continue
-      }
-
-      nextQueueItems.push({
-        id: message.id,
-        assignment: ensured.assignment,
-        profile,
-        text: buildSpeechText(
-          nextConfig.playback.textTemplate,
-          decision.text,
-          message.userName,
-          message.displayName,
-          message.channel
-        ),
-        source: "chat",
-      })
-    }
-
-    if (configChanged) {
-      updateConfig(nextConfig)
-    }
-
-    if (nextQueueItems.length === 0) {
+    const pendingMessages = messages.slice(startIdx)
+    if (pendingMessages.length === 0) {
       return
     }
 
-    setPlaybackQueue((current) => {
-      const knownIds = new Set(current.map((item) => item.id))
-      const merged = [
-        ...current,
-        ...nextQueueItems.filter((item) => !knownIds.has(item.id)),
-      ]
+    // Mark all as "seen" immediately via ref so we don't re-process,
+    // without causing a re-render that would cancel the async work below.
+    const newLastId = messages[messages.length - 1]?.id ?? lastSpokenMessageIdRef.current
+    lastSpokenMessageIdRef.current = newLastId
+    setLastSpokenMessageId(newLastId)
 
-      return merged.slice(0, queueCapacity)
-    })
+    let cancelled = false
 
-    setLastSpokenMessageId(messages[messages.length - 1]?.id ?? lastSpokenMessageId)
+    async function processMessages() {
+      const nextQueueItems: PlaybackQueueItem[] = []
+
+      for (const message of pendingMessages) {
+        if (cancelled) break
+
+        const decision = shouldSpeakMessage(message, config)
+        if (!decision.allowed) {
+          continue
+        }
+
+        const ensured = await ensureVoiceAssignment(
+          config,
+          message.userName,
+          message.displayName
+        )
+
+        if (!ensured.assignment) {
+          continue
+        }
+
+        const profile = config.voiceProfiles.find(
+          (voiceProfile) =>
+            voiceProfile.id === ensured.assignment?.voiceProfileId
+        )
+
+        if (!profile) {
+          continue
+        }
+
+        nextQueueItems.push({
+          id: message.id,
+          assignment: ensured.assignment,
+          profile,
+          text: buildSpeechText(
+            config.playback.textTemplate,
+            decision.text,
+            message.userName,
+            message.displayName,
+            message.channel
+          ),
+          source: "chat",
+        })
+      }
+
+      if (cancelled || nextQueueItems.length === 0) {
+        return
+      }
+
+      setPlaybackQueue((current) => {
+        const knownIds = new Set(current.map((item) => item.id))
+        const merged = [
+          ...current,
+          ...nextQueueItems.filter((item) => !knownIds.has(item.id)),
+        ]
+
+        return merged.slice(0, queueCapacity)
+      })
+    }
+
+    processMessages()
+
+    return () => {
+      cancelled = true
+    }
   }, [
     config,
     messages,
     ready,
-    lastSpokenMessageId,
     queueCapacity,
-    updateConfig,
   ])
 
   // -----------------------------------------------------------------------
