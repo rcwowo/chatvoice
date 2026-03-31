@@ -1,12 +1,18 @@
 import * as React from "react"
 import {
+  Gem,
   ListOrdered,
   MessagesSquareIcon,
   PauseIcon,
   PlayIcon,
   SkipForwardIcon,
+  Star,
+  Swords,
   Trash2Icon,
+  Video,
 } from "lucide-react"
+
+import type { TwitchBadge, TwitchEmote } from "@/lib/twitch-chat"
 
 import { useChatvoice } from "@/lib/chatvoice-context"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +37,88 @@ function shortTime(iso: string) {
   })
 }
 
+// ---------------------------------------------------------------------------
+// Badge rendering (role badges only)
+// ---------------------------------------------------------------------------
+
+const ROLE_BADGES: Record<
+  string,
+  { label: string; bg: string; icon: React.ComponentType<{ className?: string }> }
+> = {
+  broadcaster: { label: "Broadcaster", bg: "#E91916", icon: Video },
+  moderator: { label: "Moderator", bg: "#00AD03", icon: Swords },
+  vip: { label: "VIP", bg: "#A10886", icon: Gem },
+  subscriber: { label: "Subscriber", bg: "#8204B5", icon: Star },
+}
+
+function ChatBadges({ badges }: { badges: TwitchBadge[] }) {
+  if (badges.length === 0) return null
+  return (
+    <>
+      {badges.map((badge, i) => {
+        const role = ROLE_BADGES[badge.set]
+        if (!role) return null
+        const Icon = role.icon
+        return (
+          <span
+            key={`${badge.set}-${i}`}
+            className="inline-flex size-4 shrink-0 items-center justify-center rounded"
+            style={{ backgroundColor: role.bg }}
+            title={role.label}
+          >
+            <Icon className="size-3 text-white" />
+          </span>
+        )
+      })}
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Emote rendering
+// ---------------------------------------------------------------------------
+
+function MessageText({ text, emotes }: { text: string; emotes: TwitchEmote[] }) {
+  if (emotes.length === 0) {
+    return <span className="text-foreground">{text}</span>
+  }
+
+  const parts: React.ReactNode[] = []
+  let lastIdx = 0
+
+  for (const emote of emotes) {
+    if (emote.start > lastIdx) {
+      parts.push(
+        <span key={`t-${lastIdx}`} className="text-foreground">
+          {text.slice(lastIdx, emote.start)}
+        </span>
+      )
+    }
+    const emoteName = text.slice(emote.start, emote.end + 1)
+    parts.push(
+      <img
+        key={`e-${emote.id}-${emote.start}`}
+        src={`https://static-cdn.jtvnw.net/emoticons/v2/${encodeURIComponent(emote.id)}/default/dark/1.0`}
+        alt={emoteName}
+        title={emoteName}
+        className="inline-block h-5 align-middle"
+        loading="lazy"
+      />
+    )
+    lastIdx = emote.end + 1
+  }
+
+  if (lastIdx < text.length) {
+    parts.push(
+      <span key={`t-${lastIdx}`} className="text-foreground">
+        {text.slice(lastIdx)}
+      </span>
+    )
+  }
+
+  return <>{parts}</>
+}
+
 export function ChatPage() {
   const {
     config,
@@ -43,11 +131,21 @@ export function ChatPage() {
     clearQueue,
   } = useChatvoice()
 
-  /* Auto-scroll: flex-col-reverse keeps scroll pinned to bottom natively.
-     We only need the ref for the scroll container itself. */
+  /* Auto-scroll: keep chat pinned to the bottom when new messages arrive. */
   const chatContainerRef = React.useRef<HTMLDivElement>(null)
+  const bottomRef = React.useRef<HTMLDivElement>(null)
   const currentlyPlayingId = isPlayingQueue ? playbackQueue[0]?.id : null
   const playbackEnabled = config.playback.enabled
+
+  React.useEffect(() => {
+    const el = chatContainerRef.current
+    if (!el) return
+    // Only auto-scroll if user is near the bottom (within 80px)
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    if (isNearBottom) {
+      bottomRef.current?.scrollIntoView({ behavior: "instant" })
+    }
+  }, [messages])
 
   const togglePlayback = React.useCallback(() => {
     updateConfig({
@@ -80,9 +178,9 @@ export function ChatPage() {
           ) : (
             <div
               ref={chatContainerRef}
-              className="flex h-full flex-col-reverse overflow-y-auto overscroll-contain"
+              className="flex h-full flex-col overflow-y-auto overscroll-contain"
             >
-              <div className="px-3 py-2">
+              <div className="mt-auto px-3 py-2">
                 {messages.map((message) => {
                   const isPlaying = message.id === currentlyPlayingId
                   return (
@@ -98,22 +196,7 @@ export function ChatPage() {
                         {shortTime(message.receivedAt)}
                       </span>
 
-                      {message.flags.isModerator ? (
-                        <Badge
-                          variant="outline"
-                          className="my-px h-4 px-1 text-[10px] leading-none"
-                        >
-                          MOD
-                        </Badge>
-                      ) : null}
-                      {message.flags.isSubscriber ? (
-                        <Badge
-                          variant="outline"
-                          className="my-px h-4 px-1 text-[10px] leading-none"
-                        >
-                          SUB
-                        </Badge>
-                      ) : null}
+                      <ChatBadges badges={message.badges} />
 
                       <span className="inline text-sm">
                         <span
@@ -125,7 +208,7 @@ export function ChatPage() {
                           {message.displayName}
                         </span>
                         <span className="text-muted-foreground">: </span>
-                        <span className="text-foreground">{message.text}</span>
+                        <MessageText text={message.text} emotes={message.emotes} />
                         {isPlaying ? (
                           <Badge
                             variant="default"
@@ -138,6 +221,7 @@ export function ChatPage() {
                     </div>
                   )
                 })}
+                <div ref={bottomRef} />
               </div>
             </div>
           )}

@@ -13,6 +13,17 @@
 // Public types
 // ---------------------------------------------------------------------------
 
+export type TwitchBadge = {
+  set: string
+  version: string
+}
+
+export type TwitchEmote = {
+  id: string
+  start: number
+  end: number
+}
+
 export type TwitchChatMessage = {
   id: string
   channel: string
@@ -21,6 +32,8 @@ export type TwitchChatMessage = {
   text: string
   color: string | null
   receivedAt: string
+  badges: TwitchBadge[]
+  emotes: TwitchEmote[]
   flags: {
     isBroadcaster: boolean
     isModerator: boolean
@@ -256,6 +269,8 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
 
   // Extract badge info
   const badges = tags.get("badges") ?? ""
+  const parsedBadges = parseBadgesTag(badges)
+  const parsedEmotes = parseEmotesTag(tags.get("emotes") ?? "")
 
   const displayName = tags.get("display-name") || userName
   const color = tags.get("color") || null
@@ -275,6 +290,8 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
     text: messageText,
     color,
     receivedAt,
+    badges: parsedBadges,
+    emotes: parsedEmotes,
     flags: {
       isBroadcaster: badges.includes("broadcaster/"),
       isModerator: tags.get("mod") === "1",
@@ -284,6 +301,31 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
       isAction,
     },
   }
+}
+
+function parseBadgesTag(raw: string): TwitchBadge[] {
+  if (!raw) return []
+  return raw
+    .split(",")
+    .map((b) => {
+      const [set, version] = b.split("/")
+      return { set, version: version ?? "1" }
+    })
+    .filter((b) => b.set)
+}
+
+function parseEmotesTag(raw: string): TwitchEmote[] {
+  if (!raw) return []
+  const emotes: TwitchEmote[] = []
+  for (const group of raw.split("/")) {
+    const [id, positions] = group.split(":")
+    if (!id || !positions) continue
+    for (const pos of positions.split(",")) {
+      const [start, end] = pos.split("-")
+      emotes.push({ id, start: parseInt(start, 10), end: parseInt(end, 10) })
+    }
+  }
+  return emotes.sort((a, b) => a.start - b.start)
 }
 
 function normalizeChannel(channel: string) {

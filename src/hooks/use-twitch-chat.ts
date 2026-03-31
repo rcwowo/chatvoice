@@ -66,7 +66,7 @@ export function useTwitchChat() {
           break
         case "message":
           setMessages((current) =>
-            [event.message, ...current].slice(0, MESSAGE_LIMIT)
+            [...current, event.message].slice(-MESSAGE_LIMIT)
           )
           break
         case "log":

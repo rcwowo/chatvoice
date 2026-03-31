@@ -156,10 +156,16 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     let nextConfig = config
     let configChanged = false
 
-    for (const message of messages) {
-      if (message.id === lastSpokenMessageId) {
-        break
-      }
+    // Messages are in chronological order (oldest first, newest last).
+    // Find new messages that come after the last one we processed.
+    let startIdx = 0
+    if (lastSpokenMessageId) {
+      const idx = messages.findIndex((m) => m.id === lastSpokenMessageId)
+      startIdx = idx === -1 ? messages.length : idx + 1
+    }
+
+    for (let i = startIdx; i < messages.length; i++) {
+      const message = messages[i]
 
       const decision = shouldSpeakMessage(message, config)
       if (!decision.allowed) {
@@ -214,13 +220,13 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       const knownIds = new Set(current.map((item) => item.id))
       const merged = [
         ...current,
-        ...nextQueueItems.reverse().filter((item) => !knownIds.has(item.id)),
+        ...nextQueueItems.filter((item) => !knownIds.has(item.id)),
       ]
 
       return merged.slice(0, queueCapacity)
     })
 
-    setLastSpokenMessageId(messages[0]?.id ?? lastSpokenMessageId)
+    setLastSpokenMessageId(messages[messages.length - 1]?.id ?? lastSpokenMessageId)
   }, [
     config,
     messages,
