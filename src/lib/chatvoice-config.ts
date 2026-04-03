@@ -127,6 +127,11 @@ export function createDefaultConfig(): AppConfig {
   }
 }
 
+export function hasStoredConfig(): boolean {
+  if (typeof window === "undefined") return false
+  return window.localStorage.getItem(CHATVOICE_STORAGE_KEY) !== null
+}
+
 export function loadConfig(): AppConfig {
   if (typeof window === "undefined") {
     return createDefaultConfig()

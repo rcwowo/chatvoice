@@ -3,6 +3,7 @@ import * as React from "react"
 import {
   type AppConfig,
   createDefaultConfig,
+  hasStoredConfig,
   importConfigBackup,
   loadConfig,
   saveConfig,
@@ -17,8 +18,10 @@ export function useChatvoiceConfig() {
     createDefaultConfig()
   )
   const [ready, setReady] = React.useState(false)
+  const [needsOnboarding, setNeedsOnboarding] = React.useState(false)
 
   React.useEffect(() => {
+    const isFirstRun = !hasStoredConfig()
     const loaded = loadConfig()
 
     // Migrate old assignments from localStorage → IndexedDB (one-time)
@@ -35,6 +38,7 @@ export function useChatvoiceConfig() {
         }
       }
       setConfig(cleanConfig)
+      setNeedsOnboarding(isFirstRun)
       setReady(true)
     }
 
@@ -74,9 +78,15 @@ export function useChatvoiceConfig() {
     []
   )
 
+  const completeOnboarding = React.useCallback(() => {
+    setNeedsOnboarding(false)
+  }, [])
+
   return {
     config,
     ready,
+    needsOnboarding,
+    completeOnboarding,
     updateConfig,
     restoreBackup,
   }

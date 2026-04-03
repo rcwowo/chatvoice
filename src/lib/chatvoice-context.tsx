@@ -52,6 +52,8 @@ export type ChatvoiceContextValue = {
   // Config
   config: AppConfig
   ready: boolean
+  needsOnboarding: boolean
+  completeOnboarding: () => void
   updateConfig: ReturnType<typeof useChatvoiceConfig>["updateConfig"]
   restoreBackup: ReturnType<typeof useChatvoiceConfig>["restoreBackup"]
 
@@ -94,7 +96,7 @@ export function useChatvoice() {
 // ---------------------------------------------------------------------------
 
 export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
-  const { config, ready, updateConfig, restoreBackup } = useChatvoiceConfig()
+  const { config, ready, needsOnboarding, completeOnboarding, updateConfig, restoreBackup } = useChatvoiceConfig()
   const { connectionState, messages, logs, startConnection, stopConnection } =
     useTwitchChat()
   const { voices, loading: voicesLoading } = useBrowserVoices()
@@ -130,7 +132,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   const autoConnectedRef = React.useRef(false)
 
   React.useEffect(() => {
-    if (!ready || autoConnectedRef.current) return
+    if (!ready || needsOnboarding || autoConnectedRef.current) return
     autoConnectedRef.current = true
 
     const channel = config.twitch.channel.trim()
@@ -142,7 +144,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
           err instanceof Error ? err.message : "Connection failed",
       })
     }
-  }, [ready]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ready, needsOnboarding]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // -----------------------------------------------------------------------
   // Enqueue new chat messages as they arrive
@@ -346,6 +348,8 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     () => ({
       config,
       ready,
+      needsOnboarding,
+      completeOnboarding,
       updateConfig,
       restoreBackup,
       voices,
@@ -367,6 +371,8 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     [
       config,
       ready,
+      needsOnboarding,
+      completeOnboarding,
       updateConfig,
       restoreBackup,
       voices,
