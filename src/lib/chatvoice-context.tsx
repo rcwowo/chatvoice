@@ -172,12 +172,19 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     lastSpokenMessageIdRef.current = newLastId
     setLastSpokenMessageId(newLastId)
 
+    const isBigChat = config.playback.queueMode === "big-chat"
     let cancelled = false
 
     async function processMessages() {
+      // In big-chat mode, only process the newest pending message so we
+      // don't waste work on messages we'll never speak.
+      const messagesToProcess = isBigChat
+        ? pendingMessages.slice(-1)
+        : pendingMessages
+
       const nextQueueItems: PlaybackQueueItem[] = []
 
-      for (const message of pendingMessages) {
+      for (const message of messagesToProcess) {
         if (cancelled) break
 
         const decision = shouldSpeakMessage(message, config)
@@ -225,11 +232,19 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
 
       setPlaybackQueue((current) => {
         const knownIds = new Set(current.map((item) => item.id))
-        const merged = [
-          ...current,
-          ...nextQueueItems.filter((item) => !knownIds.has(item.id)),
-        ]
+        const newItems = nextQueueItems.filter((item) => !knownIds.has(item.id))
 
+        if (isBigChat) {
+          // Big-chat mode: keep the currently-playing item (index 0) and
+          // replace any pending items with the single newest message.
+          const newest = newItems[newItems.length - 1]
+          if (!newest) return current
+          if (current.length === 0) return [newest]
+          return [current[0]!, newest]
+        }
+
+        // Small-chat mode: merge all new items and cap at queue size.
+        const merged = [...current, ...newItems]
         return merged.slice(0, queueCapacity)
       })
     }

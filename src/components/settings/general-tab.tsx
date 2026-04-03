@@ -5,8 +5,11 @@ import {
   MoonIcon,
   PlugIcon,
   SunIcon,
+  User,
+  Users,
 } from "lucide-react"
 
+import type { QueueMode } from "@/lib/chatvoice-config"
 import logoSrc from "/logo.png"
 import iconSrc from "/icon.png"
 import { useChatvoice } from "@/lib/chatvoice-context"
@@ -77,6 +80,22 @@ export function GeneralTab() {
 
       <SectionHeading title="Appearance" />
       <ThemeSwitcher />
+
+      <Separator />
+
+      <SectionHeading
+        title="Queue mode"
+        description="Choose how chat messages are queued for speech."
+      />
+      <QueueModeSwitcher
+        value={config.playback.queueMode}
+        onChange={(mode) =>
+          updateConfig((current) => ({
+            ...current,
+            playback: { ...current.playback, queueMode: mode },
+          }))
+        }
+      />
 
       <Separator />
 
@@ -162,6 +181,82 @@ function ThemeSwitcher() {
         >
           <option.icon className="size-4" />
           {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+const QUEUE_MODE_OPTIONS: {
+  value: QueueMode
+  label: string
+  description: string
+  icon: React.ComponentType<{ className?: string }>
+}[] = [
+  {
+    value: "small-chat",
+    label: "Small chat",
+    description: "Queue messages as they arrive, up to the queue limit. Best for smaller, slower chats.",
+    icon: User,
+  },
+  {
+    value: "big-chat",
+    label: "Big chat",
+    description:
+      "Speak one message at a time, then skip ahead to the newest message. Best for larger, faster chats.",
+    icon: Users,
+  },
+]
+
+function QueueModeSwitcher({
+  value,
+  onChange,
+}: {
+  value: QueueMode
+  onChange: (mode: QueueMode) => void
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {QUEUE_MODE_OPTIONS.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+            value === option.value
+              ? "border-primary bg-primary/10"
+              : "border-border hover:bg-muted"
+          }`}
+        >
+          <div
+            className={`mt-0.5 rounded-md border p-1.5 ${
+              value === option.value
+                ? "border-primary/30 bg-primary/10"
+                : "border-border bg-muted/40"
+            }`}
+          >
+            <option.icon
+              className={`size-3.5 ${
+                value === option.value
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              }`}
+            />
+          </div>
+          <div>
+            <div
+              className={`text-sm ${
+                value === option.value
+                  ? "font-medium text-foreground"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {option.label}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {option.description}
+            </div>
+          </div>
         </button>
       ))}
     </div>

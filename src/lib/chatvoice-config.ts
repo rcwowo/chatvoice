@@ -25,11 +25,14 @@ const voiceAssignmentSchema = z.object({
   lastSeenAt: z.string().min(1),
 })
 
+const queueModeSchema = z.enum(["small-chat", "big-chat"]).default("small-chat")
+
 const playbackSchema = z.object({
   enabled: z.boolean(),
   textTemplate: z.string().min(1),
   autoAssignVoices: z.boolean().default(true),
   defaultVoiceProfileId: z.string().default(""),
+  queueMode: queueModeSchema,
   ignoreCommands: z.boolean(),
   skipBots: z.boolean(),
   skipBroadcaster: z.boolean(),
@@ -72,6 +75,7 @@ const backupEnvelopeSchema = z.object({
 
 export type VoiceProfile = z.infer<typeof voiceProfileSchema>
 export type VoiceAssignment = z.infer<typeof voiceAssignmentSchema>
+export type QueueMode = z.infer<typeof queueModeSchema>
 export type PlaybackConfig = z.infer<typeof playbackSchema>
 export type TwitchConfig = z.infer<typeof twitchSchema>
 export type AppConfig = z.infer<typeof appConfigSchema>
@@ -106,6 +110,7 @@ export function createDefaultConfig(): AppConfig {
       textTemplate: "{displayName} says {message}",
       autoAssignVoices: true,
       defaultVoiceProfileId: "",
+      queueMode: "small-chat",
       ignoreCommands: true,
       skipBots: true,
       skipBroadcaster: false,
