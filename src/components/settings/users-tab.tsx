@@ -120,7 +120,7 @@ export function UsersTab() {
           <Input
             value={newUserName}
             onChange={(e) => setNewUserName(e.target.value)}
-            placeholder="username"
+            placeholder="Username"
             className="h-8"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleAddUser()

@@ -18,7 +18,6 @@ import {
   ensureVoiceAssignment,
   normalizeLookupValue,
   sanitizeMessageText,
-  DEFAULT_PREVIEW_TEXT,
 } from "@/lib/chatvoice-config"
 import type { AppConfig } from "@/lib/chatvoice-config"
 import type {
@@ -38,15 +37,6 @@ export type PlaybackQueueItem = {
   source: "chat" | "preview"
 }
 
-// ---------------------------------------------------------------------------
-// Pages
-// ---------------------------------------------------------------------------
-
-export type PageId = "chat" | "voices" | "moderation" | "users" | "settings"
-
-// ---------------------------------------------------------------------------
-// Context value
-// ---------------------------------------------------------------------------
 
 export type ChatvoiceContextValue = {
   // Config
@@ -75,10 +65,6 @@ export type ChatvoiceContextValue = {
   lastSpokenMessageId: string | null
   skipCurrent: () => void
   clearQueue: () => void
-
-  // Navigation
-  activePage: PageId
-  setActivePage: (page: PageId) => void
 }
 
 const ChatvoiceContext = React.createContext<ChatvoiceContextValue | null>(null)
@@ -101,7 +87,6 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     useTwitchChat()
   const { voices, loading: voicesLoading } = useBrowserVoices()
 
-  const [activePage, setActivePage] = React.useState<PageId>("chat")
   const [isPlayingQueue, setIsPlayingQueue] = React.useState(false)
   const [playbackQueue, setPlaybackQueue] = React.useState<PlaybackQueueItem[]>(
     []
@@ -264,7 +249,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   ])
 
   // -----------------------------------------------------------------------
-  // Speech consumer — plays items one at a time
+  // Speech consumer - plays items one at a time
   //
   // Key design: the consumer only re-triggers when `isPlayingQueue` changes
   // to `false` or when `playbackQueue.length` changes. We do NOT put the
@@ -365,8 +350,6 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       lastSpokenMessageId,
       skipCurrent,
       clearQueue,
-      activePage,
-      setActivePage,
     }),
     [
       config,
@@ -387,7 +370,6 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       lastSpokenMessageId,
       skipCurrent,
       clearQueue,
-      activePage,
     ]
   )
 
@@ -491,5 +473,3 @@ export function formatTimestamp(value: string) {
     minute: "2-digit",
   }).format(date)
 }
-
-export { DEFAULT_PREVIEW_TEXT }

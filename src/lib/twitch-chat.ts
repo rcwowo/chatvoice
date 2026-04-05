@@ -6,7 +6,7 @@
  * `twitch.tv/commands` capabilities so every PRIVMSG carries full TMI tags
  * (display-name, color, badges, etc.).
  *
- * Zero external dependencies — uses the native browser WebSocket API.
+ * Zero external dependencies - uses the native browser WebSocket API.
  */
 
 // ---------------------------------------------------------------------------
@@ -163,7 +163,7 @@ export class TwitchChatClient {
       return
     }
 
-    // PRIVMSG — chat message
+    // PRIVMSG - chat message
     if (raw.includes("PRIVMSG")) {
       const message = parsePrivmsg(raw)
       if (message) {
@@ -172,7 +172,7 @@ export class TwitchChatClient {
       return
     }
 
-    // NOTICE — e.g. "No such channel"
+    // NOTICE - e.g. "No such channel"
     if (raw.includes("NOTICE")) {
       const noticeText = raw.split(" :").pop() ?? raw
       this.handler({ type: "log", text: noticeText })
@@ -188,7 +188,7 @@ export class TwitchChatClient {
     this.pingTimer = setTimeout(() => {
       this.handler({
         type: "error",
-        text: "No PING from Twitch — reconnecting",
+        text: "No PING from Twitch - reconnecting",
       })
       this.ws?.close()
     }, PING_TIMEOUT_MS)

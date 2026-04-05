@@ -4,7 +4,7 @@ import * as React from "react"
  * Thin wrapper around the browser `SpeechSynthesis` API for listing available
  * voices.
  *
- * `getVoices()` is async in most browsers — voices are populated after a
+ * `getVoices()` is async in most browsers - voices are populated after a
  * `voiceschanged` event. This hook handles that lifecycle and returns a
  * stable, sorted array of `SpeechSynthesisVoice` objects.
  */
@@ -12,7 +12,7 @@ import * as React from "react"
 export type BrowserVoice = {
   /** The internal voice name used as a key (matches `SpeechSynthesisVoice.name`). */
   name: string
-  /** Human-readable label (same as `name` — browser voices don't separate these). */
+  /** Human-readable label (same as `name` - browser voices don't separate these). */
   label: string
   /** BCP-47 language tag, e.g. "en-US". */
   lang: string

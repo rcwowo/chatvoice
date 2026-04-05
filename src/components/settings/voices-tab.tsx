@@ -1,12 +1,19 @@
 import * as React from "react"
-import { PlusIcon, ShuffleIcon, Trash2Icon } from "lucide-react"
+import { PlusIcon, PlayIcon, ShuffleIcon, SquareIcon, Trash2Icon } from "lucide-react"
 
 import { useChatvoice } from "@/lib/chatvoice-context"
 import {
   type VoiceProfile,
   createVoiceProfile,
+  DEFAULT_PREVIEW_TEXT,
 } from "@/lib/chatvoice-config"
-import { type BrowserVoice } from "@/hooks/use-browser-voices"
+import {
+  type BrowserVoice,
+  findSynthVoice,
+  configRateToSpeechRate,
+  configPitchToSpeechPitch,
+  configVolumeToSpeechVolume,
+} from "@/hooks/use-browser-voices"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -129,7 +136,7 @@ export function VoicesTab() {
               <TableHead className="text-center">Pitch</TableHead>
               <TableHead className="text-center">Vol</TableHead>
               <TableHead className="text-center">Enabled</TableHead>
-              <TableHead className="w-12" />
+              <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -233,21 +240,24 @@ export function VoicesTab() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() =>
-                        updateConfig((current) => ({
-                          ...current,
-                          voiceProfiles: current.voiceProfiles.filter(
-                            (p) => p.id !== profile.id
-                          ),
-                        }))
-                      }
-                    >
-                      <Trash2Icon className="size-3.5" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <PreviewButton profile={profile} />
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() =>
+                          updateConfig((current) => ({
+                            ...current,
+                            voiceProfiles: current.voiceProfiles.filter(
+                              (p) => p.id !== profile.id
+                            ),
+                          }))
+                        }
+                      >
+                        <Trash2Icon className="size-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -270,6 +280,51 @@ function patchVoiceProfile(
       profile.id === id ? { ...profile, ...patch } : profile
     ),
   }))
+}
+
+function PreviewButton({ profile }: { profile: VoiceProfile }) {
+  const [playing, setPlaying] = React.useState(false)
+
+  const play = React.useCallback(() => {
+    const synth = window.speechSynthesis
+    if (!synth) return
+
+    synth.cancel()
+
+    const utterance = new SpeechSynthesisUtterance(DEFAULT_PREVIEW_TEXT)
+    const synthVoice = findSynthVoice(profile.voice)
+    if (synthVoice) utterance.voice = synthVoice
+
+    utterance.rate = configRateToSpeechRate(profile.rate)
+    utterance.pitch = configPitchToSpeechPitch(profile.pitch)
+    utterance.volume = configVolumeToSpeechVolume(profile.volume)
+
+    utterance.onend = () => setPlaying(false)
+    utterance.onerror = () => setPlaying(false)
+
+    setPlaying(true)
+    synth.speak(utterance)
+  }, [profile.voice, profile.rate, profile.pitch, profile.volume])
+
+  const stop = React.useCallback(() => {
+    window.speechSynthesis?.cancel()
+    setPlaying(false)
+  }, [])
+
+  return (
+    <Button
+      variant="outline"
+      size="icon-sm"
+      onClick={playing ? stop : play}
+      title={playing ? "Stop preview" : "Preview voice"}
+    >
+      {playing ? (
+        <SquareIcon className="size-3" />
+      ) : (
+        <PlayIcon className="size-3.5" />
+      )}
+    </Button>
+  )
 }
 
 /**

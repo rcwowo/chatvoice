@@ -198,6 +198,7 @@ export function importConfigBackup(payload: string): {
     : []
 
   // Strip assignments from the runtime config
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { assignments: _, ...cleanConfig } = config
   return {
     config: cleanConfig as AppConfig,
@@ -323,7 +324,7 @@ export async function ensureVoiceAssignment(
   const assignment: VoiceAssignment = {
     userName: normalizedUserName,
     displayName: displayName || userName,
-    voiceProfileId: existing?.voiceProfileId ?? availableVoiceProfileId,
+    voiceProfileId: availableVoiceProfileId,
     createdAt: existing?.createdAt ?? now,
     lastSeenAt: now,
   }
@@ -390,7 +391,7 @@ function normalizeConfig(config: AppConfig): AppConfig {
       : DEFAULT_VOICE_PROFILES
   const fallbackVoiceProfileId = pickRandomVoiceProfileId(nextVoiceProfiles)
 
-  // Assignments are optional — they only appear during backup/restore.
+  // Assignments are optional - they only appear during backup/restore.
   // Normalize them if present so the backup data is clean.
   const rawAssignments = config.assignments ?? {}
   const nextAssignments = Object.fromEntries(

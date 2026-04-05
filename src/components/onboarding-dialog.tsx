@@ -126,7 +126,7 @@ export function OnboardingDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-background duration-500 fade-in">
-      {/* Decorative background — shared, but enhanced for welcome */}
+      {/* Decorative background - shared, but enhanced for welcome */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-32 -right-32 size-96 animate-in rounded-full bg-primary/6 blur-3xl duration-1000 zoom-in-50 fade-in" />
         <div className="absolute -bottom-24 -left-24 size-72 animate-in rounded-full bg-primary/4 blur-3xl delay-200 duration-1000 fill-mode-backwards zoom-in-50 fade-in" />
@@ -141,10 +141,10 @@ export function OnboardingDialog({
       <div
         className={`relative flex w-full flex-col items-center px-6 ${isWelcome ? "max-w-lg" : "max-w-md"}`}
       >
-        {/* Welcome splash — lives outside the card */}
+        {/* Welcome splash - lives outside the card */}
         {isWelcome && <WelcomeStep onContinue={() => setStep("voices")} />}
 
-        {/* Setup flow — card with progress bar */}
+        {/* Setup flow - card with progress bar */}
         {!isWelcome && (
           <SetupPhase>
             {/* Step progress */}
@@ -212,7 +212,7 @@ export function OnboardingDialog({
 }
 
 // ---------------------------------------------------------------------------
-// Setup phase entrance — animates in when welcome step transitions out
+// Setup phase entrance - animates in when welcome step transitions out
 // ---------------------------------------------------------------------------
 
 function SetupPhase({ children }: { children: React.ReactNode }) {
@@ -267,7 +267,7 @@ function StepTransition({
 }
 
 // ---------------------------------------------------------------------------
-// Step 1: Welcome (splash — no progress bar)
+// Step 1: Welcome (splash - no progress bar)
 // ---------------------------------------------------------------------------
 
 function WelcomeStep({ onContinue }: { onContinue: () => void }) {
@@ -556,7 +556,7 @@ function ChannelStep({
         <div className="grid gap-1.5">
           <Label className="text-sm">Twitch channel</Label>
           <Input
-            placeholder="channel name"
+            placeholder="Channel name"
             value={channel}
             onChange={(e) => onChannelChange(e.target.value)}
           />

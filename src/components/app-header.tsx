@@ -120,7 +120,7 @@ export function AppHeader({
                         twitch: { ...current.twitch, channel: e.target.value },
                       }))
                     }
-                    placeholder="channelname"
+                    placeholder="Channel name"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleConnect()
                     }}

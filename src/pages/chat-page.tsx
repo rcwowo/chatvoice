@@ -148,11 +148,11 @@ export function ChatPage() {
   }, [messages])
 
   const togglePlayback = React.useCallback(() => {
-    updateConfig({
-      ...config,
-      playback: { ...config.playback, enabled: !config.playback.enabled },
-    })
-  }, [config, updateConfig])
+    updateConfig((current) => ({
+      ...current,
+      playback: { ...current.playback, enabled: !current.playback.enabled },
+    }))
+  }, [updateConfig])
 
   return (
     <div className="sm:flex h-full min-h-0 gap-4">
