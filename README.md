@@ -1,48 +1,37 @@
+<div align="center">
+
+![Logo](public/social-banner.webp)
 # Chatvoice
+Let your chat have a voice! Read Twitch chat messages aloud using your browser's built-in speech synthesis capabilities.
 
-Chatvoice is a local-first web app for Twitch broadcasters who want chat messages read out loud.
-It connects to Twitch chat with `twurple`, synthesizes speech with `edge-tts`, and keeps dashboard state entirely inside the browser.
+</div>
 
-## Features
+## About this repo.
 
-- Connect to a Twitch chatroom from a local dashboard.
-- Randomly assign each chatter a saved voice profile, then persist that assignment locally.
-- Tune playback filters, queue limits, blocklists, and speech templates.
-- Export and restore versioned local backups.
-- Use shadcn/ui components without replacing their design language.
+This is the source code for my project that enables Twitch chat messages to be read aloud using the [Speech Synthesis API](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis) provided by most modern web browsers. Intended to be my own replacement for [Speechchat](https://speechchat.com).
 
-## Stack
+Chatvoice is very customizable, and works in chats of any size, **big or small**! You can assign voices to different chatters to help quickly tell who's talking without looking away at your game or activity. Or you could have voices be completely random, you could make it so that only subscriber's messages are read out loud. There are so many possibilities.
 
-- React + Vite + TypeScript
-- shadcn/ui
-- Express local bridge server
-- `@twurple/chat` + `@twurple/auth`
-- `edge-tts`
+And the best part is, there's no account login or signup required. Everything is stored directly in your browser. Don't worry, Chatvoice also includes a built-in backup and restore system so that your configuration and data is always available and yours to keep.
 
-## Running locally
+> [!NOTE]
+> Because this project relies on the browser's local Speech Synthesis API, Chatvoice works best on Microsoft Edge, due to the numerous amounts of text to speech voices they provide.
 
-Install dependencies:
+And you can use it **right now**, without any login at [chatvoice.rcw.lol](https://chatvoice.rcw.lol)!
 
-```bash
-bun install
+## How do I modify this?
+
+This project is completely client-side and built on top of React + Vite + TypeScript, with the addition of Tailwind.
+
+You can get up and running with the following commands:
+
+```sh
+# Clone the repo
+git clone https://gitlab.com/rcw.lol/chatvoice
+
+# Install dependencies
+cd chatvoice && bun install
+
+# Run the test server
+bun dev
 ```
-
-Start the client and local bridge together:
-
-```bash
-bun run dev
-```
-
-The dashboard runs in Vite, and the local bridge listens on `http://localhost:3031`.
-
-## Notes on storage and backups
-
-- Dashboard config is stored in browser `localStorage`.
-- Backups include `appVersion`, `schemaVersion`, and export time.
-- Restore logic accepts the current envelope format and older raw config payloads, then migrates them into the latest schema.
-
-## Twitch auth
-
-- Anonymous mode works for listen-only chat connections.
-- You can also provide a Twitch `clientId` and `accessToken` locally in the dashboard.
-- Tokens are not uploaded anywhere; they stay in local browser storage and are only sent to the local bridge.
