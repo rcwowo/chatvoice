@@ -3,7 +3,7 @@ import { getAssignment, putAssignment } from "@/lib/assignments-db"
 
 export const CHATVOICE_STORAGE_KEY = "chatvoice::config"
 export const CHATVOICE_SCHEMA_VERSION = 1
-export const CHATVOICE_APP_VERSION = "0.0.1"
+export const CHATVOICE_APP_VERSION: string = __APP_VERSION__
 export const DEFAULT_PREVIEW_TEXT =
   "Hello chat. This is Chatvoice testing a saved voice profile."
 

@@ -1,9 +1,11 @@
+import * as React from "react"
 import {
   ExternalLinkIcon,
   HeartIcon,
   MonitorIcon,
   MoonIcon,
   PlugIcon,
+  SparklesIcon,
   SunIcon,
   User,
   Users,
@@ -22,11 +24,13 @@ import {
   SettingsField,
   SettingsToggle,
 } from "@/components/settings/settings-primitives"
+import { ChangelogDialog } from "@/components/changelog-dialog"
 
 const version: string = __APP_VERSION__
 
 export function GeneralTab() {
   const { config, updateConfig } = useChatvoiceSettings()
+  const [changelogOpen, setChangelogOpen] = React.useState(false)
 
   return (
     <div className="space-y-6">
@@ -64,6 +68,14 @@ export function GeneralTab() {
                 <HeartIcon className="size-3" />
                 Support the project
               </a>
+              <button
+                type="button"
+                onClick={() => setChangelogOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-md bg-foreground/5 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+              >
+                <SparklesIcon className="size-3" />
+                What's new
+              </button>
               <a
                 href="https://bsky.app/profile/rcw.lol"
                 target="_blank"
@@ -149,6 +161,7 @@ export function GeneralTab() {
           }
         />
       </div>
+      <ChangelogDialog open={changelogOpen} onOpenChange={setChangelogOpen} />
     </div>
   )
 }
