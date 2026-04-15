@@ -9,7 +9,7 @@ export const DEFAULT_PREVIEW_TEXT =
 
 const voiceProfileSchema = z.object({
   id: z.string().min(1),
-  label: z.string().min(1),
+  label: z.string(),
   voice: z.string().min(1),
   rate: z.number().min(-100).max(100),
   pitch: z.number().min(-100).max(100),
@@ -29,7 +29,7 @@ const queueModeSchema = z.enum(["small-chat", "big-chat"]).default("small-chat")
 
 const playbackSchema = z.object({
   enabled: z.boolean(),
-  textTemplate: z.string().min(1),
+  textTemplate: z.string(),
   autoAssignVoices: z.boolean().default(true),
   defaultVoiceProfileId: z.string().default(""),
   queueMode: queueModeSchema,

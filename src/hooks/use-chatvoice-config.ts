@@ -54,7 +54,7 @@ export function useChatvoiceConfig() {
             : updater
 
         saveConfig(nextConfig)
-        return loadConfig()
+        return nextConfig
       })
     },
     []
