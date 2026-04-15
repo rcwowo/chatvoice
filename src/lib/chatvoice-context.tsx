@@ -38,27 +38,31 @@ export type PlaybackQueueItem = {
 }
 
 
-export type ChatvoiceContextValue = {
-  // Config
+// ---------------------------------------------------------------------------
+// Config context – changes only on user edits (stable during chat activity)
+// ---------------------------------------------------------------------------
+
+export type ChatvoiceConfigContextValue = {
   config: AppConfig
   ready: boolean
   needsOnboarding: boolean
   completeOnboarding: () => void
   updateConfig: ReturnType<typeof useChatvoiceConfig>["updateConfig"]
   restoreBackup: ReturnType<typeof useChatvoiceConfig>["restoreBackup"]
-
-  // Browser voices
   voices: BrowserVoice[]
   voicesLoading: boolean
+}
 
-  // Chat
+// ---------------------------------------------------------------------------
+// Chat context – changes on every message / playback update
+// ---------------------------------------------------------------------------
+
+export type ChatvoiceChatContextValue = {
   connectionState: TwitchConnectionState
   messages: TwitchChatMessage[]
   logs: string[]
   startConnection: (channel: string) => Promise<string>
   stopConnection: () => void
-
-  // Playback queue
   playbackQueue: PlaybackQueueItem[]
   setPlaybackQueue: React.Dispatch<React.SetStateAction<PlaybackQueueItem[]>>
   isPlayingQueue: boolean
@@ -67,14 +71,39 @@ export type ChatvoiceContextValue = {
   clearQueue: () => void
 }
 
-const ChatvoiceContext = React.createContext<ChatvoiceContextValue | null>(null)
+export type ChatvoiceContextValue = ChatvoiceConfigContextValue &
+  ChatvoiceChatContextValue
 
-export function useChatvoice() {
-  const context = React.useContext(ChatvoiceContext)
+const ChatvoiceConfigContext =
+  React.createContext<ChatvoiceConfigContextValue | null>(null)
+const ChatvoiceChatContext =
+  React.createContext<ChatvoiceChatContextValue | null>(null)
+
+/**
+ * Use only config / voices / settings state.
+ * Components using this hook will NOT re-render when chat messages or
+ * playback state change, which keeps open dropdowns stable.
+ */
+export function useChatvoiceSettings() {
+  const context = React.useContext(ChatvoiceConfigContext)
   if (!context) {
-    throw new Error("useChatvoice must be used within a ChatvoiceProvider")
+    throw new Error(
+      "useChatvoiceSettings must be used within a ChatvoiceProvider"
+    )
   }
   return context
+}
+
+/**
+ * Full context - config + chat + playback. Re-renders on every change.
+ */
+export function useChatvoice() {
+  const config = React.useContext(ChatvoiceConfigContext)
+  const chat = React.useContext(ChatvoiceChatContext)
+  if (!config || !chat) {
+    throw new Error("useChatvoice must be used within a ChatvoiceProvider")
+  }
+  return { ...config, ...chat }
 }
 
 // ---------------------------------------------------------------------------
@@ -329,7 +358,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   // Context value
   // -----------------------------------------------------------------------
 
-  const value = React.useMemo<ChatvoiceContextValue>(
+  const configValue = React.useMemo<ChatvoiceConfigContextValue>(
     () => ({
       config,
       ready,
@@ -339,6 +368,21 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       restoreBackup,
       voices,
       voicesLoading,
+    }),
+    [
+      config,
+      ready,
+      needsOnboarding,
+      completeOnboarding,
+      updateConfig,
+      restoreBackup,
+      voices,
+      voicesLoading,
+    ]
+  )
+
+  const chatValue = React.useMemo<ChatvoiceChatContextValue>(
+    () => ({
       connectionState,
       messages,
       logs,
@@ -352,14 +396,6 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       clearQueue,
     }),
     [
-      config,
-      ready,
-      needsOnboarding,
-      completeOnboarding,
-      updateConfig,
-      restoreBackup,
-      voices,
-      voicesLoading,
       connectionState,
       messages,
       logs,
@@ -374,9 +410,11 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <ChatvoiceContext.Provider value={value}>
-      {children}
-    </ChatvoiceContext.Provider>
+    <ChatvoiceConfigContext.Provider value={configValue}>
+      <ChatvoiceChatContext.Provider value={chatValue}>
+        {children}
+      </ChatvoiceChatContext.Provider>
+    </ChatvoiceConfigContext.Provider>
   )
 }
 

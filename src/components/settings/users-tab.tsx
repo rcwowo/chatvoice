@@ -9,9 +9,10 @@ import {
 } from "lucide-react"
 
 import {
-  useChatvoice,
+  useChatvoiceSettings,
   formatTimestamp,
 } from "@/lib/chatvoice-context"
+import type { ChatvoiceConfigContextValue } from "@/lib/chatvoice-context"
 import {
   normalizeLookupValue,
   pickRandomVoiceProfileId,
@@ -46,7 +47,7 @@ import {
 const PAGE_SIZE = 50
 
 export function UsersTab() {
-  const { config, updateConfig } = useChatvoice()
+  const { config, updateConfig } = useChatvoiceSettings()
   const [newUserName, setNewUserName] = React.useState("")
   const [newVoiceProfileId, setNewVoiceProfileId] = React.useState("")
 
@@ -241,8 +242,8 @@ function AssignmentRow({
   onRefresh,
 }: {
   assignment: Awaited<ReturnType<typeof getAssignmentPage>>["items"][number]
-  config: ReturnType<typeof useChatvoice>["config"]
-  updateConfig: ReturnType<typeof useChatvoice>["updateConfig"]
+  config: ChatvoiceConfigContextValue["config"]
+  updateConfig: ChatvoiceConfigContextValue["updateConfig"]
   onRefresh: () => void
 }) {
   return (

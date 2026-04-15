@@ -1,7 +1,8 @@
 import * as React from "react"
 import { PlusIcon, PlayIcon, ShuffleIcon, SquareIcon, Trash2Icon } from "lucide-react"
 
-import { useChatvoice } from "@/lib/chatvoice-context"
+import { useChatvoiceSettings } from "@/lib/chatvoice-context"
+import type { ChatvoiceConfigContextValue } from "@/lib/chatvoice-context"
 import {
   type VoiceProfile,
   createVoiceProfile,
@@ -39,7 +40,7 @@ import {
 } from "@/components/settings/settings-primitives"
 
 export function VoicesTab() {
-  const { config, updateConfig, voices, voicesLoading } = useChatvoice()
+  const { config, updateConfig, voices, voicesLoading } = useChatvoiceSettings()
 
   const voiceOptions = React.useMemo(
     () =>
@@ -272,7 +273,7 @@ export function VoicesTab() {
 function patchVoiceProfile(
   id: string,
   patch: Partial<VoiceProfile>,
-  updateConfig: ReturnType<typeof useChatvoice>["updateConfig"]
+  updateConfig: ChatvoiceConfigContextValue["updateConfig"]
 ) {
   updateConfig((current) => ({
     ...current,

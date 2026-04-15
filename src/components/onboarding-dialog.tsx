@@ -15,7 +15,7 @@ import { toast } from "sonner"
 import type { QueueMode } from "@/lib/chatvoice-config"
 import iconSrc from "/icon.png"
 import logoSrc from "/logo.png"
-import { useChatvoice } from "@/lib/chatvoice-context"
+import { useChatvoiceSettings } from "@/lib/chatvoice-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -46,7 +46,7 @@ export function OnboardingDialog({
   open: boolean
   onComplete: () => void
 }) {
-  const { updateConfig, restoreBackup, voices, voicesLoading } = useChatvoice()
+  const { updateConfig, restoreBackup, voices, voicesLoading } = useChatvoiceSettings()
 
   const [step, setStep] = React.useState<OnboardingStep>("welcome")
 

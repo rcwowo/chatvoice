@@ -12,7 +12,7 @@ import {
 import type { QueueMode } from "@/lib/chatvoice-config"
 import logoSrc from "/logo.png"
 import iconSrc from "/icon.png"
-import { useChatvoice } from "@/lib/chatvoice-context"
+import { useChatvoiceSettings } from "@/lib/chatvoice-context"
 import { useTheme } from "@/components/theme-provider"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -26,7 +26,7 @@ import {
 const version: string = __APP_VERSION__
 
 export function GeneralTab() {
-  const { config, updateConfig } = useChatvoice()
+  const { config, updateConfig } = useChatvoiceSettings()
 
   return (
     <div className="space-y-6">

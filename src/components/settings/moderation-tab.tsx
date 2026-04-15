@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { useChatvoice, parseLines } from "@/lib/chatvoice-context"
+import { useChatvoiceSettings, parseLines } from "@/lib/chatvoice-context"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -12,7 +12,7 @@ import {
 import { Link2, Zap, BotMessageSquare, Video, ShieldUser, Star } from "lucide-react"
 
 export function ModerationTab() {
-  const { config, updateConfig } = useChatvoice()
+  const { config, updateConfig } = useChatvoiceSettings()
 
   const [blockedUsersText, setBlockedUsersText] = React.useState(
     config.playback.blockedUsers.join("\n")

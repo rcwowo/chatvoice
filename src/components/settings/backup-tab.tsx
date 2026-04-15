@@ -2,7 +2,7 @@ import * as React from "react"
 import { CloudDownloadIcon, CloudUploadIcon } from "lucide-react"
 import { toast } from "sonner"
 
-import { useChatvoice } from "@/lib/chatvoice-context"
+import { useChatvoiceSettings } from "@/lib/chatvoice-context"
 import { exportConfigBackup } from "@/lib/chatvoice-config"
 import { getAllAssignments, clearAssignments } from "@/lib/assignments-db"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator"
 import { SectionHeading } from "@/components/settings/settings-primitives"
 
 export function BackupTab() {
-  const { config, restoreBackup } = useChatvoice()
+  const { config, restoreBackup } = useChatvoiceSettings()
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
   const downloadBackup = async () => {

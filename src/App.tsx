@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { ChatvoiceProvider, useChatvoice } from "@/lib/chatvoice-context"
+import { ChatvoiceProvider, useChatvoiceSettings } from "@/lib/chatvoice-context"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppHeader } from "@/components/app-header"
 import { OnboardingDialog } from "@/components/onboarding-dialog"
@@ -8,7 +8,7 @@ import { SettingsDialog } from "@/components/settings-dialog"
 import { ChatPage } from "@/pages/chat-page"
 
 function DashboardLayout() {
-  const { ready, needsOnboarding, completeOnboarding } = useChatvoice()
+  const { ready, needsOnboarding, completeOnboarding } = useChatvoiceSettings()
   const [settingsOpen, setSettingsOpen] = React.useState(false)
 
   if (!ready) {
