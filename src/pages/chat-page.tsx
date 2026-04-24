@@ -97,10 +97,10 @@ function MessageText({ text, emotes }: { text: string; emotes: TwitchEmote[] }) 
     const emoteName = text.slice(emote.start, emote.end + 1)
     parts.push(
       <img
-        key={`e-${emote.id}-${emote.start}`}
-        src={`https://static-cdn.jtvnw.net/emoticons/v2/${encodeURIComponent(emote.id)}/default/dark/1.0`}
+        key={`e-${emote.provider}-${emote.id}-${emote.start}`}
+        src={emote.imageUrl}
         alt={emoteName}
-        title={emoteName}
+        title={`${emoteName} (${emote.provider.toUpperCase()})`}
         className="inline-block h-5 align-middle"
         loading="lazy"
       />

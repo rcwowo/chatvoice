@@ -23,6 +23,7 @@ import type { AppConfig } from "@/lib/chatvoice-config"
 import type {
   TwitchChatMessage,
   TwitchConnectionState,
+  TwitchEmote,
 } from "@/lib/twitch-chat"
 
 // ---------------------------------------------------------------------------
@@ -426,6 +427,7 @@ export function shouldSpeakMessage(
   message: {
     userName: string
     text: string
+    emotes?: TwitchEmote[]
     flags: {
       isBroadcaster: boolean
       isModerator: boolean
@@ -434,10 +436,11 @@ export function shouldSpeakMessage(
   },
   config: AppConfig
 ): { allowed: boolean; text: string } {
-  const sanitized = sanitizeMessageText(
-    message.text,
-    config.playback.stripLinks
-  )
+  const sanitized = sanitizeMessageText(message.text, {
+    stripLinks: config.playback.stripLinks,
+    stripEmotes: config.playback.stripEmotes,
+    emotes: message.emotes,
+  })
   const normalizedUser = normalizeLookupValue(message.userName)
   const blockedUsernames = new Set(
     config.playback.blockedUsers.map(normalizeLookupValue)

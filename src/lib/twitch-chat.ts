@@ -18,8 +18,13 @@ export type TwitchBadge = {
   version: string
 }
 
+export type TwitchEmoteProvider = "twitch" | "bttv" | "ffz" | "7tv"
+
 export type TwitchEmote = {
   id: string
+  code: string
+  provider: TwitchEmoteProvider
+  imageUrl: string
   start: number
   end: number
 }
@@ -27,6 +32,7 @@ export type TwitchEmote = {
 export type TwitchChatMessage = {
   id: string
   channel: string
+  roomId: string | null
   userName: string
   displayName: string
   text: string
@@ -51,9 +57,15 @@ export type TwitchConnectionState = {
   lastError: string | null
 }
 
+export type TwitchRoomState = {
+  channel: string
+  roomId: string | null
+}
+
 export type TwitchChatEvent =
   | { type: "connected" }
   | { type: "disconnected"; reason: string | null }
+  | { type: "room-state"; state: TwitchRoomState }
   | { type: "message"; message: TwitchChatMessage }
   | { type: "log"; text: string }
   | { type: "error"; text: string }
@@ -163,6 +175,15 @@ export class TwitchChatClient {
       return
     }
 
+    // ROOMSTATE - channel metadata including room-id, sent on join and updates
+    if (raw.includes(" ROOMSTATE ")) {
+      const state = parseRoomState(raw)
+      if (state) {
+        this.handler({ type: "room-state", state })
+      }
+      return
+    }
+
     // PRIVMSG - chat message
     if (raw.includes("PRIVMSG")) {
       const message = parsePrivmsg(raw)
@@ -234,22 +255,10 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
   // Split tags from the rest
   if (!raw.startsWith("@")) return null
 
-  const spaceAfterTags = raw.indexOf(" ")
-  if (spaceAfterTags === -1) return null
+  const parsed = splitTaggedLine(raw)
+  if (!parsed) return null
 
-  const tagsSection = raw.slice(1, spaceAfterTags)
-  const rest = raw.slice(spaceAfterTags + 1)
-
-  // Parse tags into a map
-  const tags = new Map<string, string>()
-  for (const pair of tagsSection.split(";")) {
-    const eqIdx = pair.indexOf("=")
-    if (eqIdx === -1) {
-      tags.set(pair, "")
-    } else {
-      tags.set(pair.slice(0, eqIdx), pair.slice(eqIdx + 1))
-    }
-  }
+  const { tags, rest } = parsed
 
   // Parse prefix to get userName
   // :foo!foo@foo.tmi.twitch.tv PRIVMSG #channel :message
@@ -270,11 +279,12 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
   // Extract badge info
   const badges = tags.get("badges") ?? ""
   const parsedBadges = parseBadgesTag(badges)
-  const parsedEmotes = parseEmotesTag(tags.get("emotes") ?? "")
+  const parsedEmotes = parseEmotesTag(tags.get("emotes") ?? "", messageText)
 
   const displayName = tags.get("display-name") || userName
   const color = tags.get("color") || null
   const id = tags.get("id") || stableMessageId(channel, userName, messageText)
+  const roomId = tags.get("room-id") || null
 
   // Timestamp: tmi-sent-ts is in milliseconds
   const tmiTs = tags.get("tmi-sent-ts")
@@ -285,6 +295,7 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
   return {
     id,
     channel,
+    roomId,
     userName,
     displayName,
     text: messageText,
@@ -303,6 +314,19 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
   }
 }
 
+function parseRoomState(raw: string): TwitchRoomState | null {
+  const parsed = splitTaggedLine(raw)
+  if (!parsed) return null
+
+  const match = parsed.rest.match(/^:tmi\.twitch\.tv ROOMSTATE #(\S+)$/)
+  if (!match) return null
+
+  return {
+    channel: match[1],
+    roomId: parsed.tags.get("room-id") || null,
+  }
+}
+
 function parseBadgesTag(raw: string): TwitchBadge[] {
   if (!raw) return []
   return raw
@@ -314,7 +338,7 @@ function parseBadgesTag(raw: string): TwitchBadge[] {
     .filter((b) => b.set)
 }
 
-function parseEmotesTag(raw: string): TwitchEmote[] {
+function parseEmotesTag(raw: string, text: string): TwitchEmote[] {
   if (!raw) return []
   const emotes: TwitchEmote[] = []
   for (const group of raw.split("/")) {
@@ -322,10 +346,43 @@ function parseEmotesTag(raw: string): TwitchEmote[] {
     if (!id || !positions) continue
     for (const pos of positions.split(",")) {
       const [start, end] = pos.split("-")
-      emotes.push({ id, start: parseInt(start, 10), end: parseInt(end, 10) })
+      const parsedStart = parseInt(start, 10)
+      const parsedEnd = parseInt(end, 10)
+      const code = text.slice(parsedStart, parsedEnd + 1)
+      emotes.push({
+        id,
+        code,
+        provider: "twitch",
+        imageUrl: `https://static-cdn.jtvnw.net/emoticons/v2/${encodeURIComponent(id)}/default/dark/1.0`,
+        start: parsedStart,
+        end: parsedEnd,
+      })
     }
   }
   return emotes.sort((a, b) => a.start - b.start)
+}
+
+function splitTaggedLine(raw: string): {
+  tags: Map<string, string>
+  rest: string
+} | null {
+  const spaceAfterTags = raw.indexOf(" ")
+  if (spaceAfterTags === -1) return null
+
+  const tagsSection = raw.slice(1, spaceAfterTags)
+  const rest = raw.slice(spaceAfterTags + 1)
+  const tags = new Map<string, string>()
+
+  for (const pair of tagsSection.split(";")) {
+    const eqIdx = pair.indexOf("=")
+    if (eqIdx === -1) {
+      tags.set(pair, "")
+    } else {
+      tags.set(pair.slice(0, eqIdx), pair.slice(eqIdx + 1))
+    }
+  }
+
+  return { tags, rest }
 }
 
 function normalizeChannel(channel: string) {

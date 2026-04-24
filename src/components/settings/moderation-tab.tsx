@@ -9,7 +9,15 @@ import {
   SettingsField,
   SettingsRange,
 } from "@/components/settings/settings-primitives"
-import { Link2, Zap, BotMessageSquare, Video, ShieldUser, Star } from "lucide-react"
+import {
+  Link2,
+  Zap,
+  BotMessageSquare,
+  Video,
+  ShieldUser,
+  Star,
+  Smile,
+} from "lucide-react"
 
 export function ModerationTab() {
   const { config, updateConfig } = useChatvoiceSettings()
@@ -57,6 +65,18 @@ export function ModerationTab() {
             updateConfig((current) => ({
               ...current,
               playback: { ...current.playback, stripLinks: checked },
+            }))
+          }
+        />
+        <SettingsCheckbox
+          title="Strip emotes from speech"
+          description="Removes all emotes from messages added to the queue."
+          icon={Smile}
+          checked={config.playback.stripEmotes}
+          onCheckedChange={(checked) =>
+            updateConfig((current) => ({
+              ...current,
+              playback: { ...current.playback, stripEmotes: checked },
             }))
           }
         />

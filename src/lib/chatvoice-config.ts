@@ -1,5 +1,7 @@
 import { z } from "zod"
 import { getAssignment, putAssignment } from "@/lib/assignments-db"
+import { stripMessageEmotes } from "@/lib/chat-emotes"
+import type { TwitchEmote } from "@/lib/twitch-chat"
 
 export const CHATVOICE_STORAGE_KEY = "chatvoice::config"
 export const CHATVOICE_SCHEMA_VERSION = 1
@@ -39,6 +41,7 @@ const playbackSchema = z.object({
   skipModerators: z.boolean(),
   skipSubscribers: z.boolean(),
   stripLinks: z.boolean(),
+  stripEmotes: z.boolean().default(false),
   minMessageLength: z.number().int().min(0).max(500),
   maxMessageLength: z.number().int().min(1).max(500),
   maxQueueSize: z.number().int().min(1).max(50),
@@ -117,6 +120,7 @@ export function createDefaultConfig(): AppConfig {
       skipModerators: false,
       skipSubscribers: false,
       stripLinks: true,
+      stripEmotes: false,
       minMessageLength: 1,
       maxMessageLength: 220,
       maxQueueSize: 10,
@@ -363,10 +367,20 @@ export function buildSpeechText(
     .replaceAll("{channel}", channel)
 }
 
-export function sanitizeMessageText(text: string, stripLinks: boolean): string {
-  const withoutLinks = stripLinks
-    ? text.replaceAll(/https?:\/\/\S+/g, "")
+export function sanitizeMessageText(
+  text: string,
+  options: {
+    stripLinks: boolean
+    stripEmotes?: boolean
+    emotes?: TwitchEmote[]
+  }
+): string {
+  const withoutEmotes = options.stripEmotes
+    ? stripMessageEmotes(text, options.emotes ?? [])
     : text
+  const withoutLinks = options.stripLinks
+    ? withoutEmotes.replaceAll(/https?:\/\/\S+/g, "")
+    : withoutEmotes
   const withoutControlCharacters = Array.from(withoutLinks, (character) => {
     const codePoint = character.codePointAt(0) ?? 0
 
