@@ -133,19 +133,57 @@ export function ChatPage() {
 
   /* Auto-scroll: keep chat pinned to the bottom when new messages arrive. */
   const chatContainerRef = React.useRef<HTMLDivElement>(null)
-  const bottomRef = React.useRef<HTMLDivElement>(null)
+  const messageListRef = React.useRef<HTMLDivElement>(null)
+  const isProgrammaticScrollRef = React.useRef(false)
+  const [isScrollPaused, setIsScrollPaused] = React.useState(false)
   const currentlyPlayingId = isPlayingQueue ? playbackQueue[0]?.id : null
   const playbackEnabled = config.playback.enabled
 
-  React.useEffect(() => {
+  const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "auto") => {
     const el = chatContainerRef.current
     if (!el) return
-    // Only auto-scroll if user is near the bottom (within 80px)
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
-    if (isNearBottom) {
-      bottomRef.current?.scrollIntoView({ behavior: "instant" })
+
+    isProgrammaticScrollRef.current = true
+    el.scrollTo({ top: el.scrollHeight, behavior })
+    requestAnimationFrame(() => {
+      isProgrammaticScrollRef.current = false
+    })
+  }, [])
+
+  const handleChatScroll = React.useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      if (isProgrammaticScrollRef.current) return
+
+      const el = event.currentTarget
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+      const isNearBottom = distanceFromBottom <= 24
+
+      setIsScrollPaused(!isNearBottom)
+    },
+    []
+  )
+
+  React.useLayoutEffect(() => {
+    if (isScrollPaused) return
+    scrollToBottom("auto")
+  }, [messages, isScrollPaused, scrollToBottom])
+
+  React.useEffect(() => {
+    const container = chatContainerRef.current
+    const messageList = messageListRef.current
+    if (!container || !messageList || isScrollPaused || typeof ResizeObserver === "undefined") {
+      return
     }
-  }, [messages])
+
+    const observer = new ResizeObserver(() => {
+      scrollToBottom("auto")
+    })
+    observer.observe(messageList)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [isScrollPaused, scrollToBottom])
 
   const togglePlayback = React.useCallback(() => {
     updateConfig((current) => ({
@@ -166,7 +204,7 @@ export function ChatPage() {
             </span>
           ) : null}
         </h2>
-        <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border">
+        <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-border">
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <EmptyState
@@ -178,9 +216,10 @@ export function ChatPage() {
           ) : (
             <div
               ref={chatContainerRef}
+              onScroll={handleChatScroll}
               className="flex h-full flex-col overflow-y-auto overscroll-contain"
             >
-              <div className="mt-auto px-3 py-2">
+              <div ref={messageListRef} className="mt-auto px-3 py-2">
                 {messages.map((message) => {
                   const isPlaying = message.id === currentlyPlayingId
                   return (
@@ -221,10 +260,25 @@ export function ChatPage() {
                     </div>
                   )
                 })}
-                <div ref={bottomRef} />
               </div>
             </div>
           )}
+
+          {messages.length > 0 && isScrollPaused ? (
+            <div className="pointer-events-none absolute right-0 bottom-3 left-0 z-10 flex justify-center px-3">
+              <Button
+                type="button"
+                size="sm"
+                className="pointer-events-auto shadow-md"
+                onClick={() => {
+                  setIsScrollPaused(false)
+                  scrollToBottom("smooth")
+                }}
+              >
+                Scrolling Paused
+              </Button>
+            </div>
+          ) : null}
         </div>
       </div>
 

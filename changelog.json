@@ -4,7 +4,9 @@
         "date": "2026-05-01",
         "items": [
             "Added third party emote support from BetterTTV, FrankerFaceZ, and 7TV.",
-            "Added setting to remove emotes from messages added to the queue."
+            "Added setting to remove emotes from messages added to the queue.",
+            "Added the ability to quickly scroll back to new messages when scrolled.",
+            "Bug fix: large messages causing scroll issues."
         ]
     },
     {
