@@ -7,6 +7,7 @@
             "Added setting to remove emotes from messages added to the queue.",
             "Added display of system messages like connection status and subscriber alerts.",
             "Added the ability to quickly scroll back to new messages when scrolled.",
+            "Added different timestamp formats for the chat preview.",
             "Bug fix: chat and queue not resetting when changing channels.",
             "Bug fix: large messages causing scroll issues."
         ]

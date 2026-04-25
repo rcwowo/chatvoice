@@ -18,13 +18,17 @@ import {
   Wrench,
 } from "lucide-react"
 
+import type { MessageTimestampFormat } from "@/lib/chatvoice-config"
 import type {
   TwitchBadge,
   TwitchEmote,
   TwitchSystemMessage,
 } from "@/lib/twitch-chat"
 
-import { useChatvoice } from "@/lib/chatvoice-context"
+import {
+  formatMessageTimestamp,
+  useChatvoice,
+} from "@/lib/chatvoice-context"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -35,17 +39,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { EmptyState } from "@/components/dashboard-primitives"
-
-/** Format a receivedAt ISO string into a short HH:MM time. */
-function shortTime(iso: string) {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ""
-  return d.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  })
-}
 
 // ---------------------------------------------------------------------------
 // Badge rendering (role badges only)
@@ -212,13 +205,20 @@ const SYSTEM_EVENT_META: Record<
   },
 }
 
-function SystemMessageRow({ message }: { message: TwitchSystemMessage }) {
+function SystemMessageRow({
+  message,
+  timestampFormat,
+}: {
+  message: TwitchSystemMessage
+  timestampFormat: MessageTimestampFormat
+}) {
   const meta = SYSTEM_EVENT_META[message.event]
   const Icon = meta.icon
   const spotlight =
     message.event === "announcement" ||
     message.event === "subscription" ||
     message.event === "raid"
+  const timestamp = formatMessageTimestamp(message.receivedAt, timestampFormat)
   const normalizedHeadline = message.headline.trim().toLowerCase()
   const normalizedLabel = meta.label.trim().toLowerCase()
   const showHeadline = Boolean(message.headline.trim()) && normalizedHeadline !== normalizedLabel
@@ -226,9 +226,11 @@ function SystemMessageRow({ message }: { message: TwitchSystemMessage }) {
   if (!spotlight) {
     return (
       <div className="group flex gap-1.5 px-1 py-0.5 leading-snug hover:bg-muted/40">
-        <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
-          {shortTime(message.receivedAt)}
-        </span>
+        {timestamp ? (
+          <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
+            {timestamp}
+          </span>
+        ) : null}
         <span className="text-sm italic text-muted-foreground">
           {message.text}
         </span>
@@ -245,9 +247,11 @@ function SystemMessageRow({ message }: { message: TwitchSystemMessage }) {
 
   return (
     <div className="group flex gap-1.5 px-1 py-1 leading-snug">
-      <span className="shrink-0 pt-1 text-[11px] leading-snug text-muted-foreground/50 select-none">
-        {shortTime(message.receivedAt)}
-      </span>
+      {timestamp ? (
+        <span className="shrink-0 pt-1 text-[11px] leading-snug text-muted-foreground/50 select-none">
+          {timestamp}
+        </span>
+      ) : null}
 
       <div
         className={`min-w-0 flex-1 rounded-xl border px-3 py-2 ${meta.cardClassName}`}
@@ -310,6 +314,7 @@ export function ChatPage() {
   const [isScrollPaused, setIsScrollPaused] = React.useState(false)
   const currentlyPlayingId = isPlayingQueue ? playbackQueue[0]?.id : null
   const playbackEnabled = config.playback.enabled
+  const timestampFormat = config.playback.messageTimestampFormat
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "auto") => {
     const el = chatContainerRef.current
@@ -394,11 +399,21 @@ export function ChatPage() {
               <div ref={messageListRef} className="mt-auto px-3 py-2">
                 {timeline.map((entry) => {
                   if (entry.kind === "system") {
-                    return <SystemMessageRow key={entry.message.id} message={entry.message} />
+                    return (
+                      <SystemMessageRow
+                        key={entry.message.id}
+                        message={entry.message}
+                        timestampFormat={timestampFormat}
+                      />
+                    )
                   }
 
                   const message = entry.message
                   const isPlaying = message.id === currentlyPlayingId
+                  const timestamp = formatMessageTimestamp(
+                    message.receivedAt,
+                    timestampFormat
+                  )
                   return (
                     <div
                       key={message.id}
@@ -408,9 +423,11 @@ export function ChatPage() {
                           : "hover:bg-muted/40"
                       }`}
                     >
-                      <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
-                        {shortTime(message.receivedAt)}
-                      </span>
+                      {timestamp ? (
+                        <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
+                          {timestamp}
+                        </span>
+                      ) : null}
 
                       <span className="min-w-0 flex-1 text-sm">
                         <ChatBadges badges={message.badges} />

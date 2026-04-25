@@ -28,6 +28,9 @@ const voiceAssignmentSchema = z.object({
 })
 
 const queueModeSchema = z.enum(["small-chat", "big-chat"]).default("small-chat")
+const messageTimestampFormatSchema = z
+  .enum(["24-hour", "12-hour", "12-hour-meridiem", "none"])
+  .default("24-hour")
 
 const playbackSchema = z.object({
   enabled: z.boolean(),
@@ -35,6 +38,7 @@ const playbackSchema = z.object({
   autoAssignVoices: z.boolean().default(true),
   defaultVoiceProfileId: z.string().default(""),
   queueMode: queueModeSchema,
+  messageTimestampFormat: messageTimestampFormatSchema,
   ignoreCommands: z.boolean(),
   skipBots: z.boolean(),
   skipBroadcaster: z.boolean(),
@@ -79,6 +83,7 @@ const backupEnvelopeSchema = z.object({
 export type VoiceProfile = z.infer<typeof voiceProfileSchema>
 export type VoiceAssignment = z.infer<typeof voiceAssignmentSchema>
 export type QueueMode = z.infer<typeof queueModeSchema>
+export type MessageTimestampFormat = z.infer<typeof messageTimestampFormatSchema>
 export type PlaybackConfig = z.infer<typeof playbackSchema>
 export type TwitchConfig = z.infer<typeof twitchSchema>
 export type AppConfig = z.infer<typeof appConfigSchema>
@@ -114,6 +119,7 @@ export function createDefaultConfig(): AppConfig {
       autoAssignVoices: true,
       defaultVoiceProfileId: "",
       queueMode: "small-chat",
+      messageTimestampFormat: "24-hour",
       ignoreCommands: true,
       skipBots: true,
       skipBroadcaster: false,
@@ -202,7 +208,6 @@ export function importConfigBackup(payload: string): {
     : []
 
   // Strip assignments from the runtime config
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { assignments: _, ...cleanConfig } = config
   return {
     config: cleanConfig as AppConfig,

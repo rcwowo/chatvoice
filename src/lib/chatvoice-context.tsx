@@ -12,6 +12,7 @@ import {
   configVolumeToSpeechVolume,
 } from "@/hooks/use-browser-voices"
 import {
+  type MessageTimestampFormat,
   type VoiceAssignment,
   type VoiceProfile,
   buildSpeechText,
@@ -162,21 +163,6 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   // -----------------------------------------------------------------------
 
   const autoConnectedRef = React.useRef(false)
-
-  React.useEffect(() => {
-    if (!ready || needsOnboarding || autoConnectedRef.current) return
-    autoConnectedRef.current = true
-
-    const channel = config.twitch.channel.trim()
-    if (channel && config.twitch.autoConnect && !connectionState.connected && !connectionState.connecting) {
-      toast.promise(startConnection(channel), {
-        loading: `Connecting to #${channel}…`,
-        success: (ch) => `Connected to #${ch}`,
-        error: (err) =>
-          err instanceof Error ? err.message : "Connection failed",
-      })
-    }
-  }, [ready, needsOnboarding]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // -----------------------------------------------------------------------
   // Enqueue new chat messages as they arrive
@@ -398,6 +384,26 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     stopChatConnection()
   }, [clearChatPlaybackQueue, stopChatConnection])
 
+  React.useEffect(() => {
+    if (!ready || needsOnboarding || autoConnectedRef.current) return
+    autoConnectedRef.current = true
+
+    const channel = config.twitch.channel.trim()
+    if (
+      channel &&
+      config.twitch.autoConnect &&
+      !connectionState.connected &&
+      !connectionState.connecting
+    ) {
+      toast.promise(startConnection(channel), {
+        loading: `Connecting to #${channel}…`,
+        success: (ch) => `Connected to #${ch}`,
+        error: (err) =>
+          err instanceof Error ? err.message : "Connection failed",
+      })
+    }
+  }, [ready, needsOnboarding]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // -----------------------------------------------------------------------
   // Context value
   // -----------------------------------------------------------------------
@@ -544,6 +550,45 @@ export function parseLines(value: string) {
     .split(/\r?\n/)
     .map((item) => item.trim())
     .filter(Boolean)
+}
+
+export function formatMessageTimestamp(
+  value: string,
+  format: MessageTimestampFormat
+) {
+  if (format === "none") {
+    return null
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  if (format === "24-hour") {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date)
+  }
+
+  const formatter = new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  })
+
+  if (format === "12-hour-meridiem") {
+    return formatter.format(date)
+  }
+
+  return formatter
+    .formatToParts(date)
+    .filter((part) => part.type !== "dayPeriod")
+    .map((part) => part.value)
+    .join("")
+    .trim()
 }
 
 export function formatTimestamp(value: string) {
