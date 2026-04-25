@@ -9,9 +9,14 @@ import {
   TwitchChatClient,
   type TwitchChatMessage,
   type TwitchConnectionState,
+  type TwitchSystemMessage,
 } from "@/lib/twitch-chat"
 
 const MESSAGE_LIMIT = 60
+
+export type TwitchTimelineItem =
+  | { kind: "chat"; message: TwitchChatMessage }
+  | { kind: "system"; message: TwitchSystemMessage }
 
 type PendingConnect = {
   channel: string
@@ -27,6 +32,8 @@ export function useTwitchChat() {
   const emoteCatalogRoomIdRef = React.useRef<string | null>(null)
   const emoteCatalogLoadingRoomIdRef = React.useRef<string | null>(null)
   const emoteCatalogGenerationRef = React.useRef(0)
+  const activeChannelRef = React.useRef<string | null>(null)
+  const hasAnnouncedConnectedRef = React.useRef(false)
   const [connectionState, setConnectionState] =
     React.useState<TwitchConnectionState>({
       connected: false,
@@ -35,6 +42,7 @@ export function useTwitchChat() {
       lastError: null,
     })
   const [messages, setMessages] = React.useState<TwitchChatMessage[]>([])
+  const [timeline, setTimeline] = React.useState<TwitchTimelineItem[]>([])
   const [logs, setLogs] = React.useState<string[]>([])
 
   // Stable log appender
@@ -56,6 +64,23 @@ export function useTwitchChat() {
     }
 
     setMessages((current) => [...current, ...nextMessages].slice(-MESSAGE_LIMIT))
+    setTimeline((current) => [
+      ...current,
+      ...nextMessages.map((message) => ({ kind: "chat" as const, message })),
+    ].slice(-MESSAGE_LIMIT))
+  }, [])
+
+  const appendSystemMessage = React.useCallback((message: TwitchSystemMessage) => {
+    setTimeline((current) => [
+      ...current,
+      { kind: "system" as const, message },
+    ].slice(-MESSAGE_LIMIT))
+  }, [])
+
+  const resetChatState = React.useCallback(() => {
+    setMessages([])
+    setTimeline([])
+    setLogs([])
   }, [])
 
   const flushPendingRoomMessages = React.useCallback(
@@ -120,6 +145,23 @@ export function useTwitchChat() {
                 : entry
             )
           )
+          setTimeline((current) =>
+            current.map((entry) => {
+              if (entry.kind !== "chat") {
+                return entry
+              }
+
+              return entry.message.roomId === roomId
+                ? {
+                    ...entry,
+                    message: hydrateMessageEmotes(
+                      entry.message,
+                      emoteCatalogRef.current
+                    ),
+                  }
+                : entry
+            })
+          )
           flushPendingRoomMessages(roomId, true)
 
           appendLog(`Loaded ${catalog.size} third-party emotes for room ${roomId}`)
@@ -152,6 +194,25 @@ export function useTwitchChat() {
             connecting: false,
             lastError: null,
           }))
+          if (!hasAnnouncedConnectedRef.current) {
+            appendSystemMessage({
+              id: `system:connected:${Date.now()}`,
+              channel: activeChannelRef.current,
+              roomId: null,
+              text: activeChannelRef.current
+                ? `Connected to #${activeChannelRef.current}`
+                : "Connected to Twitch chat",
+              headline: activeChannelRef.current
+                ? `Connected to #${activeChannelRef.current}`
+                : "Connected to Twitch chat",
+              details: null,
+              receivedAt: new Date().toISOString(),
+              event: "connection",
+              level: "success",
+              accentColor: null,
+            })
+            hasAnnouncedConnectedRef.current = true
+          }
           if (pendingConnectRef.current) {
             pendingConnectRef.current.resolve(pendingConnectRef.current.channel)
             pendingConnectRef.current = null
@@ -164,6 +225,18 @@ export function useTwitchChat() {
             connecting: false,
             lastError: event.reason,
           }))
+          appendSystemMessage({
+            id: `system:disconnected:${Date.now()}`,
+            channel: activeChannelRef.current,
+            roomId: null,
+            text: event.reason ? `Disconnected: ${event.reason}` : "Disconnected",
+            headline: event.reason ? "Disconnected" : "Disconnected",
+            details: event.reason,
+            receivedAt: new Date().toISOString(),
+            event: "connection",
+            level: event.reason ? "warning" : "info",
+            accentColor: null,
+          })
           if (pendingConnectRef.current) {
             pendingConnectRef.current.reject(
               new Error(event.reason ?? "Disconnected")
@@ -188,6 +261,9 @@ export function useTwitchChat() {
             hydrateMessageEmotes(event.message, emoteCatalogRef.current),
           ])
           break
+        case "system":
+          appendSystemMessage(event.message)
+          break
         case "log":
           appendLog(event.text)
           break
@@ -197,6 +273,18 @@ export function useTwitchChat() {
             ...prev,
             lastError: event.text,
           }))
+          appendSystemMessage({
+            id: `system:error:${Date.now()}`,
+            channel: activeChannelRef.current,
+            roomId: null,
+            text: event.text,
+            headline: "Connection issue",
+            details: event.text,
+            receivedAt: new Date().toISOString(),
+            event: "status",
+            level: "error",
+            accentColor: null,
+          })
           if (pendingConnectRef.current) {
             pendingConnectRef.current.reject(new Error(event.text))
             pendingConnectRef.current = null
@@ -207,7 +295,7 @@ export function useTwitchChat() {
 
     clientRef.current = client
     return client
-  }, [appendLog, appendMessages, maybeLoadThirdPartyEmotes, queuePendingRoomMessage])
+  }, [appendLog, appendMessages, appendSystemMessage, maybeLoadThirdPartyEmotes, queuePendingRoomMessage])
 
   // Disconnect on unmount
   React.useEffect(() => {
@@ -225,8 +313,11 @@ export function useTwitchChat() {
       }
 
       resetThirdPartyEmotes()
+      resetChatState()
 
       const normalizedChannel = channel.trim().replace(/^#/, "").toLowerCase()
+      hasAnnouncedConnectedRef.current = false
+      activeChannelRef.current = normalizedChannel
       setConnectionState({
         connected: false,
         connecting: true,
@@ -239,11 +330,13 @@ export function useTwitchChat() {
         getClient().connect(channel)
       })
     },
-    [getClient, resetThirdPartyEmotes]
+    [getClient, resetChatState, resetThirdPartyEmotes]
   )
 
   const stopConnection = React.useCallback(() => {
     clientRef.current?.disconnect()
+    hasAnnouncedConnectedRef.current = false
+    activeChannelRef.current = null
     resetThirdPartyEmotes()
     setConnectionState((prev) => ({
       ...prev,
@@ -255,6 +348,7 @@ export function useTwitchChat() {
   return {
     connectionState,
     messages,
+    timeline,
     logs,
     startConnection,
     stopConnection,

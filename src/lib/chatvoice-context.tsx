@@ -2,7 +2,7 @@ import * as React from "react"
 import { toast } from "sonner"
 
 import { useChatvoiceConfig } from "@/hooks/use-chatvoice-config"
-import { useTwitchChat } from "@/hooks/use-twitch-chat"
+import { useTwitchChat, type TwitchTimelineItem } from "@/hooks/use-twitch-chat"
 import {
   type BrowserVoice,
   useBrowserVoices,
@@ -61,6 +61,7 @@ export type ChatvoiceConfigContextValue = {
 export type ChatvoiceChatContextValue = {
   connectionState: TwitchConnectionState
   messages: TwitchChatMessage[]
+  timeline: TwitchTimelineItem[]
   logs: string[]
   startConnection: (channel: string) => Promise<string>
   stopConnection: () => void
@@ -113,7 +114,14 @@ export function useChatvoice() {
 
 export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   const { config, ready, needsOnboarding, completeOnboarding, updateConfig, restoreBackup } = useChatvoiceConfig()
-  const { connectionState, messages, logs, startConnection, stopConnection } =
+  const {
+    connectionState,
+    messages,
+    timeline,
+    logs,
+    startConnection: startChatConnection,
+    stopConnection: stopChatConnection,
+  } =
     useTwitchChat()
   const { voices, loading: voicesLoading } = useBrowserVoices()
 
@@ -139,6 +147,15 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     playbackEnabledRef.current = config.playback.enabled
   }, [config.playback.enabled])
+
+  React.useEffect(() => {
+    if (messages.length !== 0 || lastSpokenMessageIdRef.current === null) {
+      return
+    }
+
+    lastSpokenMessageIdRef.current = null
+    setLastSpokenMessageId(null)
+  }, [messages.length])
 
   // -----------------------------------------------------------------------
   // Autoconnect to previously saved channel on startup
@@ -355,6 +372,32 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     setIsPlayingQueue(false)
   }, [])
 
+  const clearChatPlaybackQueue = React.useCallback(() => {
+    const currentItem = playbackQueueRef.current[0]
+
+    if (currentItem?.source === "chat") {
+      window.speechSynthesis?.cancel()
+      setIsPlayingQueue(false)
+    }
+
+    setPlaybackQueue((current) =>
+      current.filter((item) => item.source !== "chat")
+    )
+  }, [])
+
+  const startConnection = React.useCallback(
+    async (channel: string) => {
+      clearChatPlaybackQueue()
+      return startChatConnection(channel)
+    },
+    [clearChatPlaybackQueue, startChatConnection]
+  )
+
+  const stopConnection = React.useCallback(() => {
+    clearChatPlaybackQueue()
+    stopChatConnection()
+  }, [clearChatPlaybackQueue, stopChatConnection])
+
   // -----------------------------------------------------------------------
   // Context value
   // -----------------------------------------------------------------------
@@ -386,6 +429,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     () => ({
       connectionState,
       messages,
+      timeline,
       logs,
       startConnection,
       stopConnection,
@@ -399,6 +443,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     [
       connectionState,
       messages,
+      timeline,
       logs,
       startConnection,
       stopConnection,

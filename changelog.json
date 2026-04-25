@@ -5,7 +5,9 @@
         "items": [
             "Added third party emote support from BetterTTV, FrankerFaceZ, and 7TV.",
             "Added setting to remove emotes from messages added to the queue.",
+            "Added display of system messages like connection status and subscriber alerts.",
             "Added the ability to quickly scroll back to new messages when scrolled.",
+            "Bug fix: chat and queue not resetting when changing channels.",
             "Bug fix: large messages causing scroll issues."
         ]
     },
