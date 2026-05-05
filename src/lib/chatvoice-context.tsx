@@ -2,7 +2,7 @@ import * as React from "react"
 import { toast } from "sonner"
 
 import { useChatvoiceConfig } from "@/hooks/use-chatvoice-config"
-import { useTwitchChat } from "@/hooks/use-twitch-chat"
+import { useTwitchChat, type TwitchTimelineItem } from "@/hooks/use-twitch-chat"
 import {
   type BrowserVoice,
   useBrowserVoices,
@@ -12,6 +12,7 @@ import {
   configVolumeToSpeechVolume,
 } from "@/hooks/use-browser-voices"
 import {
+  type MessageTimestampFormat,
   type VoiceAssignment,
   type VoiceProfile,
   buildSpeechText,
@@ -23,6 +24,7 @@ import type { AppConfig } from "@/lib/chatvoice-config"
 import type {
   TwitchChatMessage,
   TwitchConnectionState,
+  TwitchEmote,
 } from "@/lib/twitch-chat"
 
 // ---------------------------------------------------------------------------
@@ -60,6 +62,7 @@ export type ChatvoiceConfigContextValue = {
 export type ChatvoiceChatContextValue = {
   connectionState: TwitchConnectionState
   messages: TwitchChatMessage[]
+  timeline: TwitchTimelineItem[]
   logs: string[]
   startConnection: (channel: string) => Promise<string>
   stopConnection: () => void
@@ -112,7 +115,14 @@ export function useChatvoice() {
 
 export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   const { config, ready, needsOnboarding, completeOnboarding, updateConfig, restoreBackup } = useChatvoiceConfig()
-  const { connectionState, messages, logs, startConnection, stopConnection } =
+  const {
+    connectionState,
+    messages,
+    timeline,
+    logs,
+    startConnection: startChatConnection,
+    stopConnection: stopChatConnection,
+  } =
     useTwitchChat()
   const { voices, loading: voicesLoading } = useBrowserVoices()
 
@@ -139,26 +149,20 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     playbackEnabledRef.current = config.playback.enabled
   }, [config.playback.enabled])
 
+  React.useEffect(() => {
+    if (messages.length !== 0 || lastSpokenMessageIdRef.current === null) {
+      return
+    }
+
+    lastSpokenMessageIdRef.current = null
+    setLastSpokenMessageId(null)
+  }, [messages.length])
+
   // -----------------------------------------------------------------------
   // Autoconnect to previously saved channel on startup
   // -----------------------------------------------------------------------
 
   const autoConnectedRef = React.useRef(false)
-
-  React.useEffect(() => {
-    if (!ready || needsOnboarding || autoConnectedRef.current) return
-    autoConnectedRef.current = true
-
-    const channel = config.twitch.channel.trim()
-    if (channel && config.twitch.autoConnect && !connectionState.connected && !connectionState.connecting) {
-      toast.promise(startConnection(channel), {
-        loading: `Connecting to #${channel}…`,
-        success: (ch) => `Connected to #${ch}`,
-        error: (err) =>
-          err instanceof Error ? err.message : "Connection failed",
-      })
-    }
-  }, [ready, needsOnboarding]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // -----------------------------------------------------------------------
   // Enqueue new chat messages as they arrive
@@ -354,6 +358,52 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     setIsPlayingQueue(false)
   }, [])
 
+  const clearChatPlaybackQueue = React.useCallback(() => {
+    const currentItem = playbackQueueRef.current[0]
+
+    if (currentItem?.source === "chat") {
+      window.speechSynthesis?.cancel()
+      setIsPlayingQueue(false)
+    }
+
+    setPlaybackQueue((current) =>
+      current.filter((item) => item.source !== "chat")
+    )
+  }, [])
+
+  const startConnection = React.useCallback(
+    async (channel: string) => {
+      clearChatPlaybackQueue()
+      return startChatConnection(channel)
+    },
+    [clearChatPlaybackQueue, startChatConnection]
+  )
+
+  const stopConnection = React.useCallback(() => {
+    clearChatPlaybackQueue()
+    stopChatConnection()
+  }, [clearChatPlaybackQueue, stopChatConnection])
+
+  React.useEffect(() => {
+    if (!ready || needsOnboarding || autoConnectedRef.current) return
+    autoConnectedRef.current = true
+
+    const channel = config.twitch.channel.trim()
+    if (
+      channel &&
+      config.twitch.autoConnect &&
+      !connectionState.connected &&
+      !connectionState.connecting
+    ) {
+      toast.promise(startConnection(channel), {
+        loading: `Connecting to #${channel}…`,
+        success: (ch) => `Connected to #${ch}`,
+        error: (err) =>
+          err instanceof Error ? err.message : "Connection failed",
+      })
+    }
+  }, [ready, needsOnboarding]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // -----------------------------------------------------------------------
   // Context value
   // -----------------------------------------------------------------------
@@ -385,6 +435,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     () => ({
       connectionState,
       messages,
+      timeline,
       logs,
       startConnection,
       stopConnection,
@@ -398,6 +449,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     [
       connectionState,
       messages,
+      timeline,
       logs,
       startConnection,
       stopConnection,
@@ -426,6 +478,7 @@ export function shouldSpeakMessage(
   message: {
     userName: string
     text: string
+    emotes?: TwitchEmote[]
     flags: {
       isBroadcaster: boolean
       isModerator: boolean
@@ -434,10 +487,12 @@ export function shouldSpeakMessage(
   },
   config: AppConfig
 ): { allowed: boolean; text: string } {
-  const sanitized = sanitizeMessageText(
-    message.text,
-    config.playback.stripLinks
-  )
+  const sanitized = sanitizeMessageText(message.text, {
+    stripLinks: config.playback.stripLinks,
+    stripMentions: config.playback.stripMentions,
+    stripEmotes: config.playback.stripEmotes,
+    emotes: message.emotes,
+  })
   const normalizedUser = normalizeLookupValue(message.userName)
   const blockedUsernames = new Set(
     config.playback.blockedUsers.map(normalizeLookupValue)
@@ -450,7 +505,7 @@ export function shouldSpeakMessage(
     return { allowed: false, text: sanitized }
   }
 
-  if (config.playback.ignoreCommands && /^[!/]/.test(sanitized)) {
+  if (config.playback.ignoreCommands && /^[!?]/.test(sanitized)) {
     return { allowed: false, text: sanitized }
   }
 
@@ -496,6 +551,45 @@ export function parseLines(value: string) {
     .split(/\r?\n/)
     .map((item) => item.trim())
     .filter(Boolean)
+}
+
+export function formatMessageTimestamp(
+  value: string,
+  format: MessageTimestampFormat
+) {
+  if (format === "none") {
+    return null
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  if (format === "24-hour") {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date)
+  }
+
+  const formatter = new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  })
+
+  if (format === "12-hour-meridiem") {
+    return formatter.format(date)
+  }
+
+  return formatter
+    .formatToParts(date)
+    .filter((part) => part.type !== "dayPeriod")
+    .map((part) => part.value)
+    .join("")
+    .trim()
 }
 
 export function formatTimestamp(value: string) {

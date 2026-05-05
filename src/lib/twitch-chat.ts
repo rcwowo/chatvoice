@@ -18,8 +18,13 @@ export type TwitchBadge = {
   version: string
 }
 
+export type TwitchEmoteProvider = "twitch" | "bttv" | "ffz" | "7tv"
+
 export type TwitchEmote = {
   id: string
+  code: string
+  provider: TwitchEmoteProvider
+  imageUrl: string
   start: number
   end: number
 }
@@ -27,6 +32,7 @@ export type TwitchEmote = {
 export type TwitchChatMessage = {
   id: string
   channel: string
+  roomId: string | null
   userName: string
   displayName: string
   text: string
@@ -44,6 +50,19 @@ export type TwitchChatMessage = {
   }
 }
 
+export type TwitchSystemMessage = {
+  id: string
+  channel: string | null
+  roomId: string | null
+  text: string
+  headline: string
+  details: string | null
+  receivedAt: string
+  event: "subscription" | "raid" | "announcement" | "connection" | "notice" | "status"
+  level: "info" | "success" | "warning" | "error"
+  accentColor: string | null
+}
+
 export type TwitchConnectionState = {
   connected: boolean
   connecting: boolean
@@ -51,10 +70,17 @@ export type TwitchConnectionState = {
   lastError: string | null
 }
 
+export type TwitchRoomState = {
+  channel: string
+  roomId: string | null
+}
+
 export type TwitchChatEvent =
   | { type: "connected" }
   | { type: "disconnected"; reason: string | null }
+  | { type: "room-state"; state: TwitchRoomState }
   | { type: "message"; message: TwitchChatMessage }
+  | { type: "system"; message: TwitchSystemMessage }
   | { type: "log"; text: string }
   | { type: "error"; text: string }
 
@@ -112,6 +138,10 @@ export class TwitchChatClient {
     })
 
     ws.addEventListener("close", (event) => {
+      if (ws !== this.ws) {
+        return
+      }
+
       this.clearTimers()
       if (!this.intentionalClose) {
         this.handler({
@@ -125,6 +155,10 @@ export class TwitchChatClient {
     })
 
     ws.addEventListener("error", () => {
+      if (ws !== this.ws) {
+        return
+      }
+
       this.handler({ type: "error", text: "WebSocket error" })
     })
   }
@@ -163,6 +197,15 @@ export class TwitchChatClient {
       return
     }
 
+    // ROOMSTATE - channel metadata including room-id, sent on join and updates
+    if (raw.includes(" ROOMSTATE ")) {
+      const state = parseRoomState(raw)
+      if (state) {
+        this.handler({ type: "room-state", state })
+      }
+      return
+    }
+
     // PRIVMSG - chat message
     if (raw.includes("PRIVMSG")) {
       const message = parsePrivmsg(raw)
@@ -172,10 +215,25 @@ export class TwitchChatClient {
       return
     }
 
+    // USERNOTICE - subscriptions, gift subs, raids, etc.
+    if (raw.includes(" USERNOTICE ")) {
+      const message = parseUserNotice(raw)
+      if (message) {
+        this.handler({ type: "system", message })
+      }
+      return
+    }
+
     // NOTICE - e.g. "No such channel"
     if (raw.includes("NOTICE")) {
-      const noticeText = raw.split(" :").pop() ?? raw
-      this.handler({ type: "log", text: noticeText })
+      const noticeMessage = parseNotice(raw)
+      if (noticeMessage) {
+        this.handler({ type: "system", message: noticeMessage })
+        this.handler({ type: "log", text: noticeMessage.text })
+      } else {
+        const noticeText = raw.split(" :").pop() ?? raw
+        this.handler({ type: "log", text: noticeText })
+      }
     }
   }
 
@@ -234,22 +292,10 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
   // Split tags from the rest
   if (!raw.startsWith("@")) return null
 
-  const spaceAfterTags = raw.indexOf(" ")
-  if (spaceAfterTags === -1) return null
+  const parsed = splitTaggedLine(raw)
+  if (!parsed) return null
 
-  const tagsSection = raw.slice(1, spaceAfterTags)
-  const rest = raw.slice(spaceAfterTags + 1)
-
-  // Parse tags into a map
-  const tags = new Map<string, string>()
-  for (const pair of tagsSection.split(";")) {
-    const eqIdx = pair.indexOf("=")
-    if (eqIdx === -1) {
-      tags.set(pair, "")
-    } else {
-      tags.set(pair.slice(0, eqIdx), pair.slice(eqIdx + 1))
-    }
-  }
+  const { tags, rest } = parsed
 
   // Parse prefix to get userName
   // :foo!foo@foo.tmi.twitch.tv PRIVMSG #channel :message
@@ -270,11 +316,12 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
   // Extract badge info
   const badges = tags.get("badges") ?? ""
   const parsedBadges = parseBadgesTag(badges)
-  const parsedEmotes = parseEmotesTag(tags.get("emotes") ?? "")
+  const parsedEmotes = parseEmotesTag(tags.get("emotes") ?? "", messageText)
 
   const displayName = tags.get("display-name") || userName
   const color = tags.get("color") || null
   const id = tags.get("id") || stableMessageId(channel, userName, messageText)
+  const roomId = tags.get("room-id") || null
 
   // Timestamp: tmi-sent-ts is in milliseconds
   const tmiTs = tags.get("tmi-sent-ts")
@@ -285,6 +332,7 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
   return {
     id,
     channel,
+    roomId,
     userName,
     displayName,
     text: messageText,
@@ -303,6 +351,82 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
   }
 }
 
+function parseRoomState(raw: string): TwitchRoomState | null {
+  const parsed = splitTaggedLine(raw)
+  if (!parsed) return null
+
+  const match = parsed.rest.match(/^:tmi\.twitch\.tv ROOMSTATE #(\S+)$/)
+  if (!match) return null
+
+  return {
+    channel: match[1],
+    roomId: parsed.tags.get("room-id") || null,
+  }
+}
+
+function parseUserNotice(raw: string): TwitchSystemMessage | null {
+  const parsed = splitTaggedLine(raw)
+  if (!parsed) return null
+
+  const match = parsed.rest.match(/^:\S+ USERNOTICE #(\S+)(?: :(.*))?$/)
+  if (!match) return null
+
+  const channel = match[1]
+  const roomId = parsed.tags.get("room-id") || null
+  const trailingText = match[2] ? decodeTagValue(match[2]) : ""
+  const systemText = decodeTagValue(parsed.tags.get("system-msg") ?? "")
+  const msgId = parsed.tags.get("msg-id") ?? ""
+  const event = getUserNoticeEvent(msgId)
+  const headline = systemText || getUserNoticeHeadline(msgId)
+  const details = trailingText.trim() || null
+
+  const text = [headline, details].filter(Boolean).join(" ").trim() ||
+    "Channel event"
+
+  return {
+    id:
+      parsed.tags.get("id") ||
+      stableSystemMessageId(channel, msgId || "usernotice", text),
+    channel,
+    roomId,
+    text,
+    headline,
+    details,
+    receivedAt: parseTmiTimestamp(parsed.tags),
+    event,
+    level: event === "subscription" || event === "raid" ? "success" : "info",
+    accentColor:
+      event === "announcement"
+        ? resolveAnnouncementColor(parsed.tags.get("msg-param-color") ?? null)
+        : null,
+  }
+}
+
+function parseNotice(raw: string): TwitchSystemMessage | null {
+  const parsed = splitTaggedLine(raw)
+  if (!parsed) return null
+
+  const match = parsed.rest.match(/^:\S+ NOTICE #(\S+) :(.*)$/)
+  if (!match) return null
+
+  const channel = match[1]
+  const text = decodeTagValue(match[2]).trim()
+  if (!text) return null
+
+  return {
+    id: stableSystemMessageId(channel, "notice", text),
+    channel,
+    roomId: parsed.tags.get("room-id") || null,
+    text,
+    headline: text,
+    details: null,
+    receivedAt: parseTmiTimestamp(parsed.tags),
+    event: "notice",
+    level: "warning",
+    accentColor: null,
+  }
+}
+
 function parseBadgesTag(raw: string): TwitchBadge[] {
   if (!raw) return []
   return raw
@@ -314,7 +438,7 @@ function parseBadgesTag(raw: string): TwitchBadge[] {
     .filter((b) => b.set)
 }
 
-function parseEmotesTag(raw: string): TwitchEmote[] {
+function parseEmotesTag(raw: string, text: string): TwitchEmote[] {
   if (!raw) return []
   const emotes: TwitchEmote[] = []
   for (const group of raw.split("/")) {
@@ -322,10 +446,105 @@ function parseEmotesTag(raw: string): TwitchEmote[] {
     if (!id || !positions) continue
     for (const pos of positions.split(",")) {
       const [start, end] = pos.split("-")
-      emotes.push({ id, start: parseInt(start, 10), end: parseInt(end, 10) })
+      const parsedStart = parseInt(start, 10)
+      const parsedEnd = parseInt(end, 10)
+      const code = text.slice(parsedStart, parsedEnd + 1)
+      emotes.push({
+        id,
+        code,
+        provider: "twitch",
+        imageUrl: `https://static-cdn.jtvnw.net/emoticons/v2/${encodeURIComponent(id)}/default/dark/1.0`,
+        start: parsedStart,
+        end: parsedEnd,
+      })
     }
   }
   return emotes.sort((a, b) => a.start - b.start)
+}
+
+function parseTmiTimestamp(tags: Map<string, string>): string {
+  const tmiTs = tags.get("tmi-sent-ts")
+  return tmiTs ? new Date(Number(tmiTs)).toISOString() : new Date().toISOString()
+}
+
+function decodeTagValue(value: string): string {
+  return value
+    .replace(/\\s/g, " ")
+    .replace(/\\:/g, ";")
+    .replace(/\\r/g, "\r")
+    .replace(/\\n/g, "\n")
+    .replace(/\\\\/g, "\\")
+}
+
+function getUserNoticeEvent(
+  msgId: string
+): TwitchSystemMessage["event"] {
+  if (msgId === "announcement") {
+    return "announcement"
+  }
+
+  if (msgId === "raid") {
+    return "raid"
+  }
+
+  return isSubscriptionNotice(msgId) ? "subscription" : "status"
+}
+
+function getUserNoticeHeadline(msgId: string): string {
+  switch (msgId) {
+    case "announcement":
+      return "Announcement"
+    case "raid":
+      return "Raid"
+    case "ritual":
+      return "Channel event"
+    default:
+      return "Channel event"
+  }
+}
+
+function resolveAnnouncementColor(value: string | null): string | null {
+  switch (value?.toLowerCase()) {
+    case "blue":
+      return "#3b82f6"
+    case "green":
+      return "#16a34a"
+    case "orange":
+      return "#f97316"
+    case "purple":
+      return "#8b5cf6"
+    case "primary":
+      return "#9146ff"
+    default:
+      return "#f59e0b"
+  }
+}
+
+function isSubscriptionNotice(msgId: string): boolean {
+  return /sub|gift|primepaidupgrade|anongiftpaidupgrade/i.test(msgId)
+}
+
+function splitTaggedLine(raw: string): {
+  tags: Map<string, string>
+  rest: string
+} | null {
+  const spaceAfterTags = raw.indexOf(" ")
+  if (spaceAfterTags === -1) return null
+
+  const tagsSection = raw.slice(1, spaceAfterTags)
+  const rest = raw.slice(spaceAfterTags + 1)
+  const tags = new Map<string, string>()
+
+  for (const pair of tagsSection.split(";")) {
+    const eqIdx = pair.indexOf("=")
+    if (eqIdx === -1) {
+      tags.set(pair, "")
+    } else {
+      tags.set(pair.slice(0, eqIdx), pair.slice(eqIdx + 1))
+    }
+  }
+
+  return { tags, rest }
 }
 
 function normalizeChannel(channel: string) {
@@ -339,4 +558,12 @@ function stableMessageId(
 ): string {
   // Simple hash for deduplication when Twitch doesn't provide an id tag
   return `${channel}:${userName}:${Date.now()}:${text.slice(0, 20)}`
+}
+
+function stableSystemMessageId(
+  channel: string,
+  eventType: string,
+  text: string
+): string {
+  return `${channel}:system:${eventType}:${Date.now()}:${text.slice(0, 24)}`
 }

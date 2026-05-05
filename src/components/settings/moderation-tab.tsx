@@ -9,7 +9,16 @@ import {
   SettingsField,
   SettingsRange,
 } from "@/components/settings/settings-primitives"
-import { Link2, Zap, BotMessageSquare, Video, ShieldUser, Star } from "lucide-react"
+import {
+  AtSign,
+  Link2,
+  Zap,
+  BotMessageSquare,
+  Video,
+  ShieldUser,
+  Star,
+  Smile,
+} from "lucide-react"
 
 export function ModerationTab() {
   const { config, updateConfig } = useChatvoiceSettings()
@@ -61,8 +70,32 @@ export function ModerationTab() {
           }
         />
         <SettingsCheckbox
+          title="Strip mentions from speech"
+          description="Removes @username mentions before the message is spoken."
+          icon={AtSign}
+          checked={config.playback.stripMentions}
+          onCheckedChange={(checked) =>
+            updateConfig((current) => ({
+              ...current,
+              playback: { ...current.playback, stripMentions: checked },
+            }))
+          }
+        />
+        <SettingsCheckbox
+          title="Strip emotes from speech"
+          description="Removes all emotes from messages added to the queue."
+          icon={Smile}
+          checked={config.playback.stripEmotes}
+          onCheckedChange={(checked) =>
+            updateConfig((current) => ({
+              ...current,
+              playback: { ...current.playback, stripEmotes: checked },
+            }))
+          }
+        />
+        <SettingsCheckbox
           title="Ignore command-style messages"
-          description="Skips messages starting with ! or /."
+          description="Skips messages starting with ! or ?."
           icon={Zap}
           checked={config.playback.ignoreCommands}
           onCheckedChange={(checked) =>
