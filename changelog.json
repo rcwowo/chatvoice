@@ -10,6 +10,7 @@
             "Added ability to filter out mentions from speech.",
             "Added different timestamp formats for the chat preview.",
             "Added clickable URL links in the chat preview.",
+            "Changed the TTS indicator in the chat preview to an icon instead of 'TTS'.",
             "Bug fix: chat and queue not resetting when changing channels.",
             "Bug fix: large messages causing scroll issues."
         ]

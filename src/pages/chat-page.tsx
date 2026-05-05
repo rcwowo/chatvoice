@@ -15,6 +15,7 @@ import {
   Swords,
   Trash2Icon,
   Video,
+  Volume2,
   Wrench,
 } from "lucide-react"
 
@@ -493,7 +494,7 @@ export function ChatPage() {
                             variant="default"
                             className="ml-1.5 inline-flex h-4 px-1 align-middle text-[10px] leading-none"
                           >
-                            TTS
+                            <Volume2 />
                           </Badge>
                         ) : null}
                       </span>
