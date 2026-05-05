@@ -1,5 +1,21 @@
 [
     {
+        "version": "1.1.0",
+        "date": "2026-05-05",
+        "items": [
+            "Added third party emote support from BetterTTV, FrankerFaceZ, and 7TV.",
+            "Added setting to remove emotes from messages added to the queue.",
+            "Added display of system messages like connection status and subscriber alerts.",
+            "Added the ability to quickly scroll back to new messages when scrolled.",
+            "Added ability to filter out mentions from speech.",
+            "Added different timestamp formats for the chat preview.",
+            "Added clickable URL links in the chat preview.",
+            "Changed the TTS indicator in the chat preview to an icon instead of 'TTS'.",
+            "Bug fix: chat and queue not resetting when changing channels.",
+            "Bug fix: large messages causing scroll issues."
+        ]
+    },
+    {
         "version": "1.0.1",
         "date": "2026-04-15",
         "items": [

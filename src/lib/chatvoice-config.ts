@@ -1,5 +1,7 @@
 import { z } from "zod"
 import { getAssignment, putAssignment } from "@/lib/assignments-db"
+import { stripMessageEmotes } from "@/lib/chat-emotes"
+import type { TwitchEmote } from "@/lib/twitch-chat"
 
 export const CHATVOICE_STORAGE_KEY = "chatvoice::config"
 export const CHATVOICE_SCHEMA_VERSION = 1
@@ -26,6 +28,9 @@ const voiceAssignmentSchema = z.object({
 })
 
 const queueModeSchema = z.enum(["small-chat", "big-chat"]).default("small-chat")
+const messageTimestampFormatSchema = z
+  .enum(["24-hour", "12-hour", "12-hour-meridiem", "none"])
+  .default("24-hour")
 
 const playbackSchema = z.object({
   enabled: z.boolean(),
@@ -33,12 +38,15 @@ const playbackSchema = z.object({
   autoAssignVoices: z.boolean().default(true),
   defaultVoiceProfileId: z.string().default(""),
   queueMode: queueModeSchema,
+  messageTimestampFormat: messageTimestampFormatSchema,
   ignoreCommands: z.boolean(),
   skipBots: z.boolean(),
   skipBroadcaster: z.boolean(),
   skipModerators: z.boolean(),
   skipSubscribers: z.boolean(),
   stripLinks: z.boolean(),
+  stripMentions: z.boolean().default(false),
+  stripEmotes: z.boolean().default(false),
   minMessageLength: z.number().int().min(0).max(500),
   maxMessageLength: z.number().int().min(1).max(500),
   maxQueueSize: z.number().int().min(1).max(50),
@@ -76,6 +84,7 @@ const backupEnvelopeSchema = z.object({
 export type VoiceProfile = z.infer<typeof voiceProfileSchema>
 export type VoiceAssignment = z.infer<typeof voiceAssignmentSchema>
 export type QueueMode = z.infer<typeof queueModeSchema>
+export type MessageTimestampFormat = z.infer<typeof messageTimestampFormatSchema>
 export type PlaybackConfig = z.infer<typeof playbackSchema>
 export type TwitchConfig = z.infer<typeof twitchSchema>
 export type AppConfig = z.infer<typeof appConfigSchema>
@@ -111,12 +120,15 @@ export function createDefaultConfig(): AppConfig {
       autoAssignVoices: true,
       defaultVoiceProfileId: "",
       queueMode: "small-chat",
+      messageTimestampFormat: "24-hour",
       ignoreCommands: true,
       skipBots: true,
       skipBroadcaster: false,
       skipModerators: false,
       skipSubscribers: false,
       stripLinks: true,
+      stripMentions: false,
+      stripEmotes: false,
       minMessageLength: 1,
       maxMessageLength: 220,
       maxQueueSize: 10,
@@ -198,7 +210,6 @@ export function importConfigBackup(payload: string): {
     : []
 
   // Strip assignments from the runtime config
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { assignments: _, ...cleanConfig } = config
   return {
     config: cleanConfig as AppConfig,
@@ -363,11 +374,46 @@ export function buildSpeechText(
     .replaceAll("{channel}", channel)
 }
 
-export function sanitizeMessageText(text: string, stripLinks: boolean): string {
-  const withoutLinks = stripLinks
-    ? text.replaceAll(/https?:\/\/\S+/g, "")
+const MESSAGE_URL_PATTERN = /https?:\/\/\S+/g
+
+export type MessageUrlMatch = {
+  url: string
+  start: number
+  end: number
+}
+
+export function findMessageUrls(text: string): MessageUrlMatch[] {
+  return Array.from(text.matchAll(MESSAGE_URL_PATTERN), (match) => {
+    const url = match[0]
+    const start = match.index ?? 0
+
+    return {
+      url,
+      start,
+      end: start + url.length,
+    }
+  })
+}
+
+export function sanitizeMessageText(
+  text: string,
+  options: {
+    stripLinks: boolean
+    stripMentions?: boolean
+    stripEmotes?: boolean
+    emotes?: TwitchEmote[]
+  }
+): string {
+  const withoutEmotes = options.stripEmotes
+    ? stripMessageEmotes(text, options.emotes ?? [])
     : text
-  const withoutControlCharacters = Array.from(withoutLinks, (character) => {
+  const withoutLinks = options.stripLinks
+    ? withoutEmotes.replaceAll(MESSAGE_URL_PATTERN, "")
+    : withoutEmotes
+  const withoutMentions = options.stripMentions
+    ? withoutLinks.replaceAll(/(^|[^\w@])@[A-Za-z0-9_]+\b/g, "$1")
+    : withoutLinks
+  const withoutControlCharacters = Array.from(withoutMentions, (character) => {
     const codePoint = character.codePointAt(0) ?? 0
 
     if ((codePoint >= 0 && codePoint <= 31) || codePoint === 127) {
