@@ -95,7 +95,7 @@ export function ModerationTab() {
         />
         <SettingsCheckbox
           title="Ignore command-style messages"
-          description="Skips messages starting with ! or /."
+          description="Skips messages starting with ! or ?."
           icon={Zap}
           checked={config.playback.ignoreCommands}
           onCheckedChange={(checked) =>

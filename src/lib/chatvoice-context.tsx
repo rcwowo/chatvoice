@@ -505,7 +505,7 @@ export function shouldSpeakMessage(
     return { allowed: false, text: sanitized }
   }
 
-  if (config.playback.ignoreCommands && /^[!/]/.test(sanitized)) {
+  if (config.playback.ignoreCommands && /^[!?]/.test(sanitized)) {
     return { allowed: false, text: sanitized }
   }
 

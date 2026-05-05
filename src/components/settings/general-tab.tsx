@@ -74,7 +74,7 @@ export function GeneralTab() {
               <button
                 type="button"
                 onClick={() => setChangelogOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-md bg-foreground/5 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                className="inline-flex items-center gap-1.5 rounded-md bg-foreground/5 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors cursor-pointer hover:bg-foreground/10 hover:text-foreground"
               >
                 <SparklesIcon className="size-3" />
                 What's new
