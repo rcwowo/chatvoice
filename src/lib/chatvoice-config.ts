@@ -374,6 +374,27 @@ export function buildSpeechText(
     .replaceAll("{channel}", channel)
 }
 
+const MESSAGE_URL_PATTERN = /https?:\/\/\S+/g
+
+export type MessageUrlMatch = {
+  url: string
+  start: number
+  end: number
+}
+
+export function findMessageUrls(text: string): MessageUrlMatch[] {
+  return Array.from(text.matchAll(MESSAGE_URL_PATTERN), (match) => {
+    const url = match[0]
+    const start = match.index ?? 0
+
+    return {
+      url,
+      start,
+      end: start + url.length,
+    }
+  })
+}
+
 export function sanitizeMessageText(
   text: string,
   options: {
@@ -387,7 +408,7 @@ export function sanitizeMessageText(
     ? stripMessageEmotes(text, options.emotes ?? [])
     : text
   const withoutLinks = options.stripLinks
-    ? withoutEmotes.replaceAll(/https?:\/\/\S+/g, "")
+    ? withoutEmotes.replaceAll(MESSAGE_URL_PATTERN, "")
     : withoutEmotes
   const withoutMentions = options.stripMentions
     ? withoutLinks.replaceAll(/(^|[^\w@])@[A-Za-z0-9_]+\b/g, "$1")

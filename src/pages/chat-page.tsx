@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 
 import type { MessageTimestampFormat } from "@/lib/chatvoice-config"
+import { findMessageUrls } from "@/lib/chatvoice-config"
 import type {
   TwitchBadge,
   TwitchEmote,
@@ -87,9 +88,58 @@ function ChatBadges({ badges }: { badges: TwitchBadge[] }) {
 // Emote rendering
 // ---------------------------------------------------------------------------
 
+function renderTextWithLinks(text: string, keyPrefix: string) {
+  const urls = findMessageUrls(text)
+
+  if (urls.length === 0) {
+    return [
+      <span key={keyPrefix} className="text-foreground">
+        {text}
+      </span>,
+    ]
+  }
+
+  const parts: React.ReactNode[] = []
+  let lastIdx = 0
+
+  for (const [index, match] of urls.entries()) {
+    if (match.start > lastIdx) {
+      parts.push(
+        <span key={`${keyPrefix}-t-${lastIdx}`} className="text-foreground">
+          {text.slice(lastIdx, match.start)}
+        </span>
+      )
+    }
+
+    parts.push(
+      <a
+        key={`${keyPrefix}-l-${index}-${match.start}`}
+        href={match.url}
+        target="_blank"
+        rel="noreferrer noopener"
+        className="text-primary underline decoration-primary/40 underline-offset-2 transition-colors hover:text-primary/80"
+      >
+        {match.url}
+      </a>
+    )
+
+    lastIdx = match.end
+  }
+
+  if (lastIdx < text.length) {
+    parts.push(
+      <span key={`${keyPrefix}-t-${lastIdx}`} className="text-foreground">
+        {text.slice(lastIdx)}
+      </span>
+    )
+  }
+
+  return parts
+}
+
 function MessageText({ text, emotes }: { text: string; emotes: TwitchEmote[] }) {
   if (emotes.length === 0) {
-    return <span className="text-foreground">{text}</span>
+    return <>{renderTextWithLinks(text, "message")}</>
   }
 
   const parts: React.ReactNode[] = []
@@ -98,9 +148,10 @@ function MessageText({ text, emotes }: { text: string; emotes: TwitchEmote[] }) 
   for (const emote of emotes) {
     if (emote.start > lastIdx) {
       parts.push(
-        <span key={`t-${lastIdx}`} className="text-foreground">
-          {text.slice(lastIdx, emote.start)}
-        </span>
+        ...renderTextWithLinks(
+          text.slice(lastIdx, emote.start),
+          `t-${lastIdx}`
+        )
       )
     }
     const emoteName = text.slice(emote.start, emote.end + 1)
@@ -118,11 +169,7 @@ function MessageText({ text, emotes }: { text: string; emotes: TwitchEmote[] }) 
   }
 
   if (lastIdx < text.length) {
-    parts.push(
-      <span key={`t-${lastIdx}`} className="text-foreground">
-        {text.slice(lastIdx)}
-      </span>
-    )
+    parts.push(...renderTextWithLinks(text.slice(lastIdx), `t-${lastIdx}`))
   }
 
   return <>{parts}</>
