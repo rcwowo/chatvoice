@@ -489,6 +489,7 @@ export function shouldSpeakMessage(
 ): { allowed: boolean; text: string } {
   const sanitized = sanitizeMessageText(message.text, {
     stripLinks: config.playback.stripLinks,
+    stripMentions: config.playback.stripMentions,
     stripEmotes: config.playback.stripEmotes,
     emotes: message.emotes,
   })

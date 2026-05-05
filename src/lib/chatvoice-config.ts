@@ -45,6 +45,7 @@ const playbackSchema = z.object({
   skipModerators: z.boolean(),
   skipSubscribers: z.boolean(),
   stripLinks: z.boolean(),
+  stripMentions: z.boolean().default(false),
   stripEmotes: z.boolean().default(false),
   minMessageLength: z.number().int().min(0).max(500),
   maxMessageLength: z.number().int().min(1).max(500),
@@ -126,6 +127,7 @@ export function createDefaultConfig(): AppConfig {
       skipModerators: false,
       skipSubscribers: false,
       stripLinks: true,
+      stripMentions: false,
       stripEmotes: false,
       minMessageLength: 1,
       maxMessageLength: 220,
@@ -376,6 +378,7 @@ export function sanitizeMessageText(
   text: string,
   options: {
     stripLinks: boolean
+    stripMentions?: boolean
     stripEmotes?: boolean
     emotes?: TwitchEmote[]
   }
@@ -386,7 +389,10 @@ export function sanitizeMessageText(
   const withoutLinks = options.stripLinks
     ? withoutEmotes.replaceAll(/https?:\/\/\S+/g, "")
     : withoutEmotes
-  const withoutControlCharacters = Array.from(withoutLinks, (character) => {
+  const withoutMentions = options.stripMentions
+    ? withoutLinks.replaceAll(/(^|[^\w@])@[A-Za-z0-9_]+\b/g, "$1")
+    : withoutLinks
+  const withoutControlCharacters = Array.from(withoutMentions, (character) => {
     const codePoint = character.codePointAt(0) ?? 0
 
     if ((codePoint >= 0 && codePoint <= 31) || codePoint === 127) {

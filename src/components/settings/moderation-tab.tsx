@@ -10,6 +10,7 @@ import {
   SettingsRange,
 } from "@/components/settings/settings-primitives"
 import {
+  AtSign,
   Link2,
   Zap,
   BotMessageSquare,
@@ -65,6 +66,18 @@ export function ModerationTab() {
             updateConfig((current) => ({
               ...current,
               playback: { ...current.playback, stripLinks: checked },
+            }))
+          }
+        />
+        <SettingsCheckbox
+          title="Strip mentions from speech"
+          description="Removes @username mentions before the message is spoken."
+          icon={AtSign}
+          checked={config.playback.stripMentions}
+          onCheckedChange={(checked) =>
+            updateConfig((current) => ({
+              ...current,
+              playback: { ...current.playback, stripMentions: checked },
             }))
           }
         />
