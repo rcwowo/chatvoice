@@ -56,6 +56,7 @@ const playbackSchema = z.object({
 
 const twitchSchema = z.object({
   channel: z.string(),
+  savedChannels: z.array(z.string()).default([]),
   clientId: z.string(),
   accessToken: z.string(),
   readOnly: z.boolean(),
@@ -109,6 +110,7 @@ export function createDefaultConfig(): AppConfig {
     updatedAt: new Date().toISOString(),
     twitch: {
       channel: "",
+      savedChannels: [],
       clientId: "",
       accessToken: "",
       readOnly: true,
@@ -430,6 +432,35 @@ export function normalizeLookupValue(value: string): string {
   return value.trim().toLowerCase()
 }
 
+export function normalizeChannelName(value: string): string {
+  return value.trim().replace(/^#/, "").toLowerCase()
+}
+
+export function normalizeTwitchConfig(twitch: TwitchConfig): TwitchConfig {
+  const channel = normalizeChannelName(twitch.channel)
+  const savedChannels = [
+    ...new Set(
+      (twitch.savedChannels ?? [])
+        .map(normalizeChannelName)
+        .filter((name) => name.length > 0)
+    ),
+  ]
+
+  if (savedChannels.length === 0 && channel) {
+    savedChannels.push(channel)
+  }
+
+  if (channel && !savedChannels.includes(channel)) {
+    savedChannels.unshift(channel)
+  }
+
+  return {
+    ...twitch,
+    channel,
+    savedChannels,
+  }
+}
+
 function normalizeConfig(config: AppConfig): AppConfig {
   const nextVoiceProfiles =
     config.voiceProfiles.length > 0
@@ -464,6 +495,7 @@ function normalizeConfig(config: AppConfig): AppConfig {
   return {
     ...config,
     updatedAt: config.updatedAt || new Date().toISOString(),
+    twitch: normalizeTwitchConfig(config.twitch),
     voiceProfiles: nextVoiceProfiles,
     assignments: Object.keys(nextAssignments).length > 0
       ? nextAssignments
