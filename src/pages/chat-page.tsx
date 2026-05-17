@@ -525,73 +525,18 @@ export function ChatPage() {
 
       {/* Queue panel */}
       <div className="flex min-h-0 flex-2 flex-col">
-        <div className="mb-1 flex h-5 shrink-0 items-center gap-1">
-          <h2 className="flex-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Queue
-            {playbackQueue.length > 0 ? (
-              <span className="ml-1 font-normal text-muted-foreground/70 normal-case">
-                ({playbackQueue.length})
-              </span>
-            ) : null}
-          </h2>
+        <h2 className="mb-1 h-5 shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Queue
+          {playbackQueue.length > 0 ? (
+            <span className="ml-1 font-normal text-muted-foreground/70 normal-case">
+              ({playbackQueue.length})
+            </span>
+          ) : null}
+        </h2>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={togglePlayback}
-                  aria-label={
-                    playbackEnabled ? "Pause speech" : "Resume speech"
-                  }
-                >
-                  {playbackEnabled ? (
-                    <PauseIcon className="size-3.5" />
-                  ) : (
-                    <PlayIcon className="size-3.5" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {playbackEnabled ? "Pause speech" : "Resume speech"}
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={skipCurrent}
-                  disabled={playbackQueue.length === 0}
-                  aria-label="Skip current"
-                >
-                  <SkipForwardIcon className="size-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Skip current</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={clearQueue}
-                  disabled={playbackQueue.length === 0}
-                  aria-label="Clear queue"
-                >
-                  <Trash2Icon className="size-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Clear queue</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-
-        {playbackQueue.length === 0 ? (
-          <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-border">
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          {playbackQueue.length === 0 ? (
+            <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-border">
             <EmptyState
               icon={ListOrdered}
               title="Queue is empty"
@@ -628,6 +573,70 @@ export function ChatPage() {
             </div>
           </ScrollArea>
         )}
+
+          <TooltipProvider>
+            <div
+              className="flex shrink-0 items-center justify-center gap-5"
+              role="toolbar"
+              aria-label="Speech playback controls"
+            >
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full"
+                    onClick={clearQueue}
+                    disabled={playbackQueue.length === 0}
+                    aria-label="Clear queue"
+                  >
+                    <Trash2Icon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Clear queue</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="default"
+                    size="icon-lg"
+                    className="size-12 rounded-full shadow-sm"
+                    onClick={togglePlayback}
+                    aria-label={
+                      playbackEnabled ? "Pause speech" : "Resume speech"
+                    }
+                  >
+                    {playbackEnabled ? (
+                      <PauseIcon className="size-5" />
+                    ) : (
+                      <PlayIcon className="size-5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {playbackEnabled ? "Pause speech" : "Resume speech"}
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full"
+                    onClick={skipCurrent}
+                    disabled={playbackQueue.length === 0}
+                    aria-label="Skip current message"
+                  >
+                    <SkipForwardIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Skip current message</TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        </div>
       </div>
     </div>
   )
