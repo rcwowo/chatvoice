@@ -33,13 +33,13 @@ import {
 } from "@/lib/chatvoice-context"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { ChatQueueSplit } from "@/components/chat-queue-split"
 import { EmptyState } from "@/components/dashboard-primitives"
 
 // ---------------------------------------------------------------------------
@@ -418,9 +418,10 @@ export function ChatPage() {
   }, [updateConfig])
 
   return (
-    <div className="sm:flex h-full min-h-0 gap-4">
-      {/* -- Chat log -- */}
-      <div className="flex min-h-0 min-w-0 md:flex-4 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+    <ChatQueueSplit
+      chat={
+      <div className="flex h-full min-h-0 min-w-0 flex-col">
         <h2 className="mb-1 h-5 shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
           Chat
           {connectionState.connected && connectionState.channel ? (
@@ -522,9 +523,9 @@ export function ChatPage() {
           ) : null}
         </div>
       </div>
-
-      {/* Queue panel */}
-      <div className="flex min-h-0 flex-2 flex-col">
+      }
+      queue={
+      <div className="flex h-full min-h-0 min-w-0 flex-col">
         <h2 className="mb-1 h-5 shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
           Queue
           {playbackQueue.length > 0 ? (
@@ -534,7 +535,7 @@ export function ChatPage() {
           ) : null}
         </h2>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
           {playbackQueue.length === 0 ? (
             <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-border">
             <EmptyState
@@ -548,30 +549,41 @@ export function ChatPage() {
             />
           </div>
         ) : (
-          <ScrollArea className="min-h-0 flex-1 rounded-xl border border-border">
-            <div className="space-y-2 p-3">
-              {playbackQueue.map((item, index) => (
-                <div
-                  key={item.id}
-                  className={
-                    index === 0 && isPlayingQueue
-                      ? "rounded-xl border-2 border-primary bg-primary/5 p-3"
-                      : "rounded-xl border border-border bg-background p-3"
-                  }
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-medium text-sm">
-                      {item.assignment.displayName}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border">
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3">
+              <div className="w-full max-w-full min-w-0 space-y-2">
+                {playbackQueue.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className={
+                      index === 0 && isPlayingQueue
+                        ? "@container/queue-item w-full max-w-full min-w-0 overflow-hidden rounded-xl border-2 border-primary bg-primary/5 p-3"
+                        : "@container/queue-item w-full max-w-full min-w-0 overflow-hidden rounded-xl border border-border bg-background p-3"
+                    }
+                  >
+                    <div className="flex min-w-0 flex-col gap-1.5 @min-[14rem]/queue-item:flex-row @min-[14rem]/queue-item:items-center @min-[14rem]/queue-item:gap-2">
+                      <p
+                        className="min-w-0 truncate font-medium text-sm @min-[14rem]/queue-item:flex-1"
+                        title={item.assignment.displayName}
+                      >
+                        {item.assignment.displayName}
+                      </p>
+                      <Badge
+                        variant="outline"
+                        className="w-fit max-w-full shrink-0 self-start truncate @min-[14rem]/queue-item:max-w-[11rem]"
+                        title={item.profile.label}
+                      >
+                        {item.profile.label}
+                      </Badge>
                     </div>
-                    <Badge variant="outline">{item.profile.label}</Badge>
+                    <p className="mt-2 break-words text-sm text-muted-foreground @min-[14rem]/queue-item:mt-1.5">
+                      {item.text}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {item.text}
-                  </p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </ScrollArea>
+          </div>
         )}
 
           <TooltipProvider>
@@ -638,6 +650,8 @@ export function ChatPage() {
           </TooltipProvider>
         </div>
       </div>
+      }
+    />
     </div>
   )
 }
