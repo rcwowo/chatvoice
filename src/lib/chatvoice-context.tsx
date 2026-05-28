@@ -18,6 +18,8 @@ import {
   buildSpeechText,
   ensureVoiceAssignment,
   normalizeLookupValue,
+  normalizeTwitchConfig,
+  parseChannelSearchParam,
   sanitizeMessageText,
 } from "@/lib/chatvoice-config"
 import type { AppConfig } from "@/lib/chatvoice-config"
@@ -159,7 +161,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   }, [messages.length])
 
   // -----------------------------------------------------------------------
-  // Autoconnect to previously saved channel on startup
+  // Autoconnect on startup (?channel= deep link or saved config)
   // -----------------------------------------------------------------------
 
   const autoConnectedRef = React.useRef(false)
@@ -388,13 +390,31 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     if (!ready || needsOnboarding || autoConnectedRef.current) return
     autoConnectedRef.current = true
 
-    const channel = config.twitch.channel.trim()
-    if (
-      channel &&
-      config.twitch.autoConnect &&
+    const urlParam = parseChannelSearchParam()
+    if (urlParam.kind === "invalid") {
+      toast.error("Invalid channel in URL. Use ?channel=your_twitch_name")
+    }
+
+    const urlChannel = urlParam.kind === "valid" ? urlParam.channel : null
+    if (urlChannel) {
+      updateConfig((current) => ({
+        ...current,
+        twitch: normalizeTwitchConfig({
+          ...current.twitch,
+          channel: urlChannel,
+        }),
+      }))
+    }
+
+    const configChannel = config.twitch.channel.trim()
+    const channel = urlChannel ?? configChannel
+    const shouldConnect =
+      Boolean(channel) &&
+      (urlChannel !== null || config.twitch.autoConnect) &&
       !connectionState.connected &&
       !connectionState.connecting
-    ) {
+
+    if (shouldConnect && channel) {
       toast.promise(startConnection(channel), {
         loading: `Connecting to #${channel}…`,
         success: (ch) => `Connected to #${ch}`,
