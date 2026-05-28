@@ -8,15 +8,13 @@ import {
 import { toast } from "sonner"
 
 import { useChatvoice } from "@/lib/chatvoice-context"
-import { normalizeChannelName } from "@/lib/chatvoice-config"
+import {
+  isValidChannelName,
+  normalizeChannelName,
+} from "@/lib/chatvoice-config"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-
-function isValidChannelName(value: string) {
-  const normalized = normalizeChannelName(value)
-  return /^[a-z0-9_]{1,25}$/.test(normalized)
-}
 
 function ConnectionStatusDot({
   connected,

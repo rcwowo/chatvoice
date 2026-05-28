@@ -436,6 +436,35 @@ export function normalizeChannelName(value: string): string {
   return value.trim().replace(/^#/, "").toLowerCase()
 }
 
+const CHANNEL_NAME_PATTERN = /^[a-z0-9_]{1,25}$/
+
+export function isValidChannelName(value: string): boolean {
+  const normalized = normalizeChannelName(value)
+  return CHANNEL_NAME_PATTERN.test(normalized)
+}
+
+export type ChannelSearchParamResult =
+  | { kind: "absent" }
+  | { kind: "invalid" }
+  | { kind: "valid"; channel: string }
+
+/** Parse `?channel=` from a query string (e.g. deep links from other apps). */
+export function parseChannelSearchParam(
+  search: string = typeof window !== "undefined" ? window.location.search : ""
+): ChannelSearchParamResult {
+  const raw = new URLSearchParams(search).get("channel")
+  if (raw === null || raw.trim() === "") {
+    return { kind: "absent" }
+  }
+
+  const channel = normalizeChannelName(raw)
+  if (!isValidChannelName(channel)) {
+    return { kind: "invalid" }
+  }
+
+  return { kind: "valid", channel }
+}
+
 export function normalizeTwitchConfig(twitch: TwitchConfig): TwitchConfig {
   const channel = normalizeChannelName(twitch.channel)
   const savedChannels = [
