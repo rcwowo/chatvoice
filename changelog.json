@@ -1,5 +1,15 @@
 [
     {
+        "version": "1.1.1",
+        "date": "2026-05-28",
+        "items": [
+            "Added ?channel= URL parameter to open and connect to a Twitch channel automatically.",
+            "Added the ability to quickly add and swap between channels.",
+            "Added ability to resize and collapse the chat and queue panels.",
+            "Changed queue actions (play/pause, etc.)to be more prominent."
+        ]
+    },
+    {
         "version": "1.1.0",
         "date": "2026-05-05",
         "items": [

@@ -56,6 +56,7 @@ const playbackSchema = z.object({
 
 const twitchSchema = z.object({
   channel: z.string(),
+  savedChannels: z.array(z.string()).default([]),
   clientId: z.string(),
   accessToken: z.string(),
   readOnly: z.boolean(),
@@ -109,6 +110,7 @@ export function createDefaultConfig(): AppConfig {
     updatedAt: new Date().toISOString(),
     twitch: {
       channel: "",
+      savedChannels: [],
       clientId: "",
       accessToken: "",
       readOnly: true,
@@ -430,6 +432,64 @@ export function normalizeLookupValue(value: string): string {
   return value.trim().toLowerCase()
 }
 
+export function normalizeChannelName(value: string): string {
+  return value.trim().replace(/^#/, "").toLowerCase()
+}
+
+const CHANNEL_NAME_PATTERN = /^[a-z0-9_]{1,25}$/
+
+export function isValidChannelName(value: string): boolean {
+  const normalized = normalizeChannelName(value)
+  return CHANNEL_NAME_PATTERN.test(normalized)
+}
+
+export type ChannelSearchParamResult =
+  | { kind: "absent" }
+  | { kind: "invalid" }
+  | { kind: "valid"; channel: string }
+
+/** Parse `?channel=` from a query string (e.g. deep links from other apps). */
+export function parseChannelSearchParam(
+  search: string = typeof window !== "undefined" ? window.location.search : ""
+): ChannelSearchParamResult {
+  const raw = new URLSearchParams(search).get("channel")
+  if (raw === null || raw.trim() === "") {
+    return { kind: "absent" }
+  }
+
+  const channel = normalizeChannelName(raw)
+  if (!isValidChannelName(channel)) {
+    return { kind: "invalid" }
+  }
+
+  return { kind: "valid", channel }
+}
+
+export function normalizeTwitchConfig(twitch: TwitchConfig): TwitchConfig {
+  const channel = normalizeChannelName(twitch.channel)
+  const savedChannels = [
+    ...new Set(
+      (twitch.savedChannels ?? [])
+        .map(normalizeChannelName)
+        .filter((name) => name.length > 0)
+    ),
+  ]
+
+  if (savedChannels.length === 0 && channel) {
+    savedChannels.push(channel)
+  }
+
+  if (channel && !savedChannels.includes(channel)) {
+    savedChannels.unshift(channel)
+  }
+
+  return {
+    ...twitch,
+    channel,
+    savedChannels,
+  }
+}
+
 function normalizeConfig(config: AppConfig): AppConfig {
   const nextVoiceProfiles =
     config.voiceProfiles.length > 0
@@ -464,6 +524,7 @@ function normalizeConfig(config: AppConfig): AppConfig {
   return {
     ...config,
     updatedAt: config.updatedAt || new Date().toISOString(),
+    twitch: normalizeTwitchConfig(config.twitch),
     voiceProfiles: nextVoiceProfiles,
     assignments: Object.keys(nextAssignments).length > 0
       ? nextAssignments

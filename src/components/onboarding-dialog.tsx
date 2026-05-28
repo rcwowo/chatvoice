@@ -103,6 +103,12 @@ export function OnboardingDialog({
         twitch: {
           ...current.twitch,
           channel: channel.trim().replace(/^#/, "").toLowerCase(),
+          savedChannels: [
+            ...new Set([
+              ...(current.twitch.savedChannels ?? []),
+              channel.trim().replace(/^#/, "").toLowerCase(),
+            ]),
+          ],
         },
         playback: {
           ...current.playback,
