@@ -62,7 +62,7 @@ const ROLE_BADGES: Record<
   "subscriber": { label: "Subscriber", bg: "#8204B5", icon: Star },
 }
 
-function BadgeTooltip({
+function HoverTooltip({
   label,
   children,
 }: {
@@ -93,24 +93,24 @@ function ChatBadges({
         const role = ROLE_BADGES[badge.set]!
         const Icon = role.icon
         return (
-          <BadgeTooltip key={`${badge.set}-${i}`} label={role.label}>
+          <HoverTooltip key={`${badge.set}-${i}`} label={role.label}>
             <span
               className="inline-flex size-4 items-center justify-center rounded align-middle"
               style={{ backgroundColor: role.bg }}
             >
               <Icon className="size-3 text-white" />
             </span>
-          </BadgeTooltip>
+          </HoverTooltip>
         )
       })}
       {memberBadge ? (
-        <BadgeTooltip label={memberBadge.name}>
+        <HoverTooltip label={memberBadge.name}>
           <img
             src={memberBadge.image}
             alt={memberBadge.name}
             className="inline-block size-4 rounded align-middle"
           />
-        </BadgeTooltip>
+        </HoverTooltip>
       ) : null}
     </span>
   )
@@ -188,14 +188,17 @@ function MessageText({ text, emotes }: { text: string; emotes: TwitchEmote[] }) 
     }
     const emoteName = text.slice(emote.start, emote.end + 1)
     parts.push(
-      <img
+      <HoverTooltip
         key={`e-${emote.provider}-${emote.id}-${emote.start}`}
-        src={emote.imageUrl}
-        alt={emoteName}
-        title={`${emoteName} (${emote.provider.toUpperCase()})`}
-        className="inline-block h-5 align-middle"
-        loading="lazy"
-      />
+        label={emote.code}
+      >
+        <img
+          src={emote.imageUrl}
+          alt={emoteName}
+          className="inline-block h-5 align-middle"
+          loading="lazy"
+        />
+      </HoverTooltip>
     )
     lastIdx = emote.end + 1
   }
