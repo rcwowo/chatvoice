@@ -2,6 +2,7 @@ import * as React from "react"
 import { toast } from "sonner"
 
 import { useChatvoiceConfig } from "@/hooks/use-chatvoice-config"
+import { useMemberBadges } from "@/hooks/use-member-badges"
 import { useTwitchChat, type TwitchTimelineItem } from "@/hooks/use-twitch-chat"
 import {
   type BrowserVoice,
@@ -23,6 +24,7 @@ import {
   sanitizeMessageText,
 } from "@/lib/chatvoice-config"
 import type { AppConfig } from "@/lib/chatvoice-config"
+import type { MemberBadge } from "@/lib/member-badges"
 import type {
   TwitchChatMessage,
   TwitchConnectionState,
@@ -55,6 +57,8 @@ export type ChatvoiceConfigContextValue = {
   restoreBackup: ReturnType<typeof useChatvoiceConfig>["restoreBackup"]
   voices: BrowserVoice[]
   voicesLoading: boolean
+  memberBadgeByUserId: Map<string, MemberBadge>
+  memberBadgesReady: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -127,6 +131,8 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   } =
     useTwitchChat()
   const { voices, loading: voicesLoading } = useBrowserVoices()
+  const { badgeByUserId: memberBadgeByUserId, ready: memberBadgesReady } =
+    useMemberBadges()
 
   const [isPlayingQueue, setIsPlayingQueue] = React.useState(false)
   const [playbackQueue, setPlaybackQueue] = React.useState<PlaybackQueueItem[]>(
@@ -438,6 +444,8 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       restoreBackup,
       voices,
       voicesLoading,
+      memberBadgeByUserId,
+      memberBadgesReady,
     }),
     [
       config,
@@ -448,6 +456,8 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       restoreBackup,
       voices,
       voicesLoading,
+      memberBadgeByUserId,
+      memberBadgesReady,
     ]
   )
 
