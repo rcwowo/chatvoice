@@ -63,7 +63,7 @@ export function GeneralTab() {
 
             <div className="mt-4 flex flex-wrap gap-2">
               <a
-                href="https://streamelements.com/rcwowo/tip"
+                href="https://patreon.com/rcwowo"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
