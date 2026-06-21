@@ -1,5 +1,13 @@
 [
     {
+        "version": "1.1.2",
+        "date": "2026-06-21",
+        "items": [
+            "Added OwO+ badges for Patreon members.",
+            "Badges now have tooltips when hovered."
+        ]
+    },
+    {
         "version": "1.1.1",
         "date": "2026-05-28",
         "items": [

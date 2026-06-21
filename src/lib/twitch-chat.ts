@@ -33,6 +33,7 @@ export type TwitchChatMessage = {
   id: string
   channel: string
   roomId: string | null
+  userId: string | null
   userName: string
   displayName: string
   text: string
@@ -322,6 +323,7 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
   const color = tags.get("color") || null
   const id = tags.get("id") || stableMessageId(channel, userName, messageText)
   const roomId = tags.get("room-id") || null
+  const userId = tags.get("user-id") || null
 
   // Timestamp: tmi-sent-ts is in milliseconds
   const tmiTs = tags.get("tmi-sent-ts")
@@ -333,6 +335,7 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
     id,
     channel,
     roomId,
+    userId,
     userName,
     displayName,
     text: messageText,

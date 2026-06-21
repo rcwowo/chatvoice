@@ -26,6 +26,7 @@ import type {
   TwitchEmote,
   TwitchSystemMessage,
 } from "@/lib/twitch-chat"
+import type { MemberBadge } from "@/lib/member-badges"
 
 import {
   formatMessageTimestamp,
@@ -61,9 +62,30 @@ const ROLE_BADGES: Record<
   "subscriber": { label: "Subscriber", bg: "#8204B5", icon: Star },
 }
 
-function ChatBadges({ badges }: { badges: TwitchBadge[] }) {
+function BadgeTooltip({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactElement
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+function ChatBadges({
+  badges,
+  memberBadge,
+}: {
+  badges: TwitchBadge[]
+  memberBadge?: MemberBadge | null
+}) {
   const knownBadges = badges.filter((badge) => ROLE_BADGES[badge.set])
-  if (knownBadges.length === 0) return null
+  if (knownBadges.length === 0 && !memberBadge) return null
 
   return (
     <span className="mr-1 inline-flex items-center gap-0.5 align-middle">
@@ -71,16 +93,25 @@ function ChatBadges({ badges }: { badges: TwitchBadge[] }) {
         const role = ROLE_BADGES[badge.set]!
         const Icon = role.icon
         return (
-          <span
-            key={`${badge.set}-${i}`}
-            className="inline-flex size-4 items-center justify-center rounded align-middle"
-            style={{ backgroundColor: role.bg }}
-            title={role.label}
-          >
-            <Icon className="size-3 text-white" />
-          </span>
+          <BadgeTooltip key={`${badge.set}-${i}`} label={role.label}>
+            <span
+              className="inline-flex size-4 items-center justify-center rounded align-middle"
+              style={{ backgroundColor: role.bg }}
+            >
+              <Icon className="size-3 text-white" />
+            </span>
+          </BadgeTooltip>
         )
       })}
+      {memberBadge ? (
+        <BadgeTooltip label={memberBadge.name}>
+          <img
+            src={memberBadge.image}
+            alt={memberBadge.name}
+            className="inline-block size-4 rounded align-middle"
+          />
+        </BadgeTooltip>
+      ) : null}
     </span>
   )
 }
@@ -353,6 +384,7 @@ export function ChatPage() {
     isPlayingQueue,
     skipCurrent,
     clearQueue,
+    memberBadgeByUserId,
   } = useChatvoice()
 
   /* Auto-scroll: keep chat pinned to the bottom when new messages arrive. */
@@ -479,7 +511,14 @@ export function ChatPage() {
                       ) : null}
 
                       <span className="min-w-0 flex-1 text-sm">
-                        <ChatBadges badges={message.badges} />
+                        <ChatBadges
+                          badges={message.badges}
+                          memberBadge={
+                            message.userId
+                              ? memberBadgeByUserId.get(message.userId)
+                              : null
+                          }
+                        />
                         <span
                           className="font-semibold"
                           style={
