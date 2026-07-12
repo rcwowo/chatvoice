@@ -27,7 +27,7 @@ You can get up and running with the following commands:
 
 ```sh
 # Clone the repo
-git clone https://gitlab.com/rcw.lol/chatvoice
+git clone https://github.com/rcwowo/chatvoice
 
 # Install dependencies
 cd chatvoice && bun install
