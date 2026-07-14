@@ -20,7 +20,7 @@ import {
   type TwitchSystemMessage,
 } from "@/lib/twitch-chat"
 
-const MESSAGE_LIMIT = 60
+const DEFAULT_MESSAGE_LIMIT = 60
 
 export type TwitchTimelineItem =
   | { kind: "chat"; message: TwitchChatMessage }
@@ -32,7 +32,7 @@ type PendingConnect = {
   reject: (err: Error) => void
 }
 
-export function useTwitchChat() {
+export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
   const clientRef = React.useRef<TwitchChatClient | null>(null)
   const pendingConnectRef = React.useRef<PendingConnect | null>(null)
   const pendingRoomMessagesRef = React.useRef(new Map<string, TwitchChatMessage[]>())
@@ -46,6 +46,8 @@ export function useTwitchChat() {
   const badgeCatalogGenerationRef = React.useRef(0)
   const activeChannelRef = React.useRef<string | null>(null)
   const hasAnnouncedConnectedRef = React.useRef(false)
+  const messageLimitRef = React.useRef(messageLimit)
+  messageLimitRef.current = messageLimit
   const [connectionState, setConnectionState] =
     React.useState<TwitchConnectionState>({
       connected: false,
@@ -56,6 +58,15 @@ export function useTwitchChat() {
   const [messages, setMessages] = React.useState<TwitchChatMessage[]>([])
   const [timeline, setTimeline] = React.useState<TwitchTimelineItem[]>([])
   const [logs, setLogs] = React.useState<string[]>([])
+
+  React.useEffect(() => {
+    setMessages((current) =>
+      current.length > messageLimit ? current.slice(-messageLimit) : current
+    )
+    setTimeline((current) =>
+      current.length > messageLimit ? current.slice(-messageLimit) : current
+    )
+  }, [messageLimit])
 
   // Stable log appender
   const appendLog = React.useCallback((text: string) => {
@@ -95,11 +106,12 @@ export function useTwitchChat() {
       return
     }
 
-    setMessages((current) => [...current, ...nextMessages].slice(-MESSAGE_LIMIT))
+    const limit = messageLimitRef.current
+    setMessages((current) => [...current, ...nextMessages].slice(-limit))
     setTimeline((current) => [
       ...current,
       ...nextMessages.map((message) => ({ kind: "chat" as const, message })),
-    ].slice(-MESSAGE_LIMIT))
+    ].slice(-limit))
   }, [])
 
   const appendSystemMessage = React.useCallback((message: TwitchSystemMessage) => {
@@ -109,10 +121,11 @@ export function useTwitchChat() {
         ? emoteCatalogRef.current
         : null
     )
+    const limit = messageLimitRef.current
     setTimeline((current) => [
       ...current,
       { kind: "system" as const, message: hydrated },
-    ].slice(-MESSAGE_LIMIT))
+    ].slice(-limit))
   }, [])
 
   const resetChatState = React.useCallback(() => {

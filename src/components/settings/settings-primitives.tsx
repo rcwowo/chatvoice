@@ -106,23 +106,29 @@ export function SettingsRange({
   onChange,
   min,
   max,
+  step = 1,
+  formatValue,
 }: {
   label: string
   value: number
   onChange: (value: number) => void
   min: number
   max: number
+  step?: number
+  formatValue?: (value: number) => string
 }) {
   return (
     <div className="space-y-2 rounded-lg border border-border bg-background p-3">
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium">{label}</span>
-        <span className="text-muted-foreground">{value}</span>
+        <span className="text-muted-foreground">
+          {formatValue ? formatValue(value) : value}
+        </span>
       </div>
       <Slider
         min={min}
         max={max}
-        step={1}
+        step={step}
         value={[value]}
         onValueChange={(values) => onChange(values[0] ?? min)}
       />

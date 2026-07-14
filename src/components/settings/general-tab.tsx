@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   SectionHeading,
   SettingsField,
+  SettingsRange,
   SettingsToggle,
 } from "@/components/settings/settings-primitives"
 import { ChangelogDialog } from "@/components/changelog-dialog"
@@ -93,11 +94,44 @@ export function GeneralTab() {
         </div>
       </div>
 
-      <SectionHeading 
-        title="Appearance" 
-        description="Choose what theme should Chatvoice use."
-        />
+      <SectionHeading
+        title="Appearance"
+        description="Theme and how live chat is displayed."
+      />
       <ThemeSwitcher />
+      <div className="space-y-4">
+        <SettingsRange
+          label="Max messages"
+          value={config.playback.maxDisplayedMessages}
+          onChange={(value) =>
+            updateConfig((current) => ({
+              ...current,
+              playback: {
+                ...current.playback,
+                maxDisplayedMessages: value,
+              },
+            }))
+          }
+          min={50}
+          max={500}
+        />
+        <SettingsRange
+          label="Chat scale"
+          value={config.playback.chatScale}
+          onChange={(value) =>
+            updateConfig((current) => ({
+              ...current,
+              playback: {
+                ...current.playback,
+                chatScale: value,
+              },
+            }))
+          }
+          min={75}
+          max={200}
+          formatValue={(value) => `${value}%`}
+        />
+      </div>
 
       <SectionHeading
         title="Message timestamp format"

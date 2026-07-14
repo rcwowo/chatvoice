@@ -75,7 +75,7 @@ function ChatBadges({
           <img
             src={badge.imageUrl}
             alt={badge.title ?? badge.set}
-            className="inline-block size-4 align-middle"
+            className="inline-block size-[1.14em] align-middle"
             loading="lazy"
           />
         </HoverTooltip>
@@ -85,7 +85,7 @@ function ChatBadges({
           <img
             src={memberBadge.image}
             alt={memberBadge.name}
-            className="inline-block size-4 rounded align-middle"
+            className="inline-block size-[1.14em] rounded align-middle"
           />
         </HoverTooltip>
       ) : null}
@@ -172,7 +172,7 @@ function MessageText({ text, emotes }: { text: string; emotes: TwitchEmote[] }) 
         <img
           src={emote.imageUrl}
           alt={emoteName}
-          className="inline-block h-5 align-middle"
+          className="inline-block h-[1.43em] align-middle"
           loading="lazy"
         />
       </HoverTooltip>
@@ -257,11 +257,11 @@ function SystemMessageRow({
     return (
       <div className="group flex gap-1.5 px-1 py-0.5 leading-snug hover:bg-muted/40">
         {timestamp ? (
-          <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
+          <span className="shrink-0 text-[0.786em] leading-snug text-muted-foreground/50 select-none">
             {timestamp}
           </span>
         ) : null}
-        <span className="text-sm italic text-muted-foreground">
+        <span className="italic text-muted-foreground">
           {message.text}
         </span>
       </div>
@@ -281,25 +281,25 @@ function SystemMessageRow({
       style={accentStyle}
     >
       {timestamp ? (
-        <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
+        <span className="shrink-0 text-[0.786em] leading-snug text-muted-foreground/50 select-none">
           {timestamp}
         </span>
       ) : null}
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <Icon className="size-3.5 shrink-0 text-foreground" />
-          <span className="text-sm font-semibold text-foreground">
+          <Icon className="size-[1em] shrink-0 text-foreground" />
+          <span className="font-semibold text-foreground">
             {meta.label}
           </span>
         </div>
 
         {showHeadline ? (
-          <p className="mt-0.5 text-sm text-foreground/85">{message.headline}</p>
+          <p className="mt-0.5 text-foreground/85">{message.headline}</p>
         ) : null}
 
         {message.details ? (
-          <p className="mt-0.5 text-sm text-foreground/85">
+          <p className="mt-0.5 text-foreground/85">
             <MessageText text={message.details} emotes={message.emotes} />
           </p>
         ) : null}
@@ -328,6 +328,7 @@ export function ChatPage() {
   const currentlyPlayingId = isPlayingQueue ? playbackQueue[0]?.id : null
   const playbackEnabled = config.playback.enabled
   const timestampFormat = config.playback.messageTimestampFormat
+  const chatScale = config.playback.chatScale
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "auto") => {
     const el = chatContainerRef.current
@@ -405,7 +406,13 @@ export function ChatPage() {
                   onScroll={handleChatScroll}
                   className="flex h-full flex-col overflow-y-auto overscroll-contain"
                 >
-                  <div ref={messageListRef} className="mt-auto px-4 py-2">
+                  <div
+                    ref={messageListRef}
+                    className="mt-auto px-4 py-2"
+                    style={{
+                      fontSize: `calc(0.875rem * ${chatScale / 100})`,
+                    }}
+                  >
                     {timeline.map((entry) => {
                       if (entry.kind === "system") {
                         return (
@@ -433,12 +440,12 @@ export function ChatPage() {
                           }`}
                         >
                           {timestamp ? (
-                            <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
+                            <span className="shrink-0 text-[0.786em] leading-snug text-muted-foreground/50 select-none">
                               {timestamp}
                             </span>
                           ) : null}
 
-                          <span className="min-w-0 flex-1 text-sm">
+                          <span className="min-w-0 flex-1">
                             <ChatBadges
                               badges={message.badges}
                               memberBadge={
@@ -465,7 +472,7 @@ export function ChatPage() {
                             {isPlaying ? (
                               <Badge
                                 variant="default"
-                                className="ml-1.5 inline-flex h-4 px-1 align-middle text-[10px] leading-none"
+                                className="ml-1.5 inline-flex h-[1.14em] px-[0.286em] align-middle text-[0.714em] leading-none"
                               >
                                 <Volume2 />
                               </Badge>

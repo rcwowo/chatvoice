@@ -129,7 +129,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     startConnection: startChatConnection,
     stopConnection: stopChatConnection,
   } =
-    useTwitchChat()
+    useTwitchChat(config.playback.maxDisplayedMessages)
   const { voices, loading: voicesLoading } = useBrowserVoices()
   const { badgeByUserId: memberBadgeByUserId, ready: memberBadgesReady } =
     useMemberBadges()

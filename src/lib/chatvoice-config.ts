@@ -50,6 +50,8 @@ const playbackSchema = z.object({
   minMessageLength: z.number().int().min(0).max(500),
   maxMessageLength: z.number().int().min(1).max(500),
   maxQueueSize: z.number().int().min(1).max(50),
+  maxDisplayedMessages: z.number().int().min(50).max(500).default(300),
+  chatScale: z.number().int().min(75).max(200).default(100),
   blockedUsers: z.array(z.string()),
   blockedTerms: z.array(z.string()),
 })
@@ -134,6 +136,8 @@ export function createDefaultConfig(): AppConfig {
       minMessageLength: 1,
       maxMessageLength: 220,
       maxQueueSize: 10,
+      maxDisplayedMessages: 300,
+      chatScale: 100,
       blockedUsers: [],
       blockedTerms: [],
     },
