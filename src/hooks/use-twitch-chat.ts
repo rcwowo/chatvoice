@@ -4,6 +4,7 @@ import {
   createEmptyEmoteCatalog,
   fetchThirdPartyEmoteCatalog,
   hydrateMessageEmotes,
+  hydrateSystemMessageEmotes,
 } from "@/lib/chat-emotes"
 import {
   TwitchChatClient,
@@ -71,9 +72,15 @@ export function useTwitchChat() {
   }, [])
 
   const appendSystemMessage = React.useCallback((message: TwitchSystemMessage) => {
+    const hydrated = hydrateSystemMessageEmotes(
+      message,
+      message.roomId && emoteCatalogRoomIdRef.current === message.roomId
+        ? emoteCatalogRef.current
+        : null
+    )
     setTimeline((current) => [
       ...current,
-      { kind: "system" as const, message },
+      { kind: "system" as const, message: hydrated },
     ].slice(-MESSAGE_LIMIT))
   }, [])
 
@@ -147,14 +154,22 @@ export function useTwitchChat() {
           )
           setTimeline((current) =>
             current.map((entry) => {
-              if (entry.kind !== "chat") {
-                return entry
+              if (entry.kind === "chat") {
+                return entry.message.roomId === roomId
+                  ? {
+                      ...entry,
+                      message: hydrateMessageEmotes(
+                        entry.message,
+                        emoteCatalogRef.current
+                      ),
+                    }
+                  : entry
               }
 
               return entry.message.roomId === roomId
                 ? {
                     ...entry,
-                    message: hydrateMessageEmotes(
+                    message: hydrateSystemMessageEmotes(
                       entry.message,
                       emoteCatalogRef.current
                     ),
@@ -206,6 +221,7 @@ export function useTwitchChat() {
                 ? `Connected to #${activeChannelRef.current}`
                 : "Connected to Twitch chat",
               details: null,
+              emotes: [],
               receivedAt: new Date().toISOString(),
               event: "connection",
               level: "success",
@@ -232,6 +248,7 @@ export function useTwitchChat() {
             text: event.reason ? `Disconnected: ${event.reason}` : "Disconnected",
             headline: event.reason ? "Disconnected" : "Disconnected",
             details: event.reason,
+            emotes: [],
             receivedAt: new Date().toISOString(),
             event: "connection",
             level: event.reason ? "warning" : "info",
@@ -280,6 +297,7 @@ export function useTwitchChat() {
             text: event.text,
             headline: "Connection issue",
             details: event.text,
+            emotes: [],
             receivedAt: new Date().toISOString(),
             event: "status",
             level: "error",

@@ -1,4 +1,4 @@
-import type { TwitchChatMessage, TwitchEmote, TwitchEmoteProvider } from "@/lib/twitch-chat"
+import type { TwitchChatMessage, TwitchEmote, TwitchEmoteProvider, TwitchSystemMessage } from "@/lib/twitch-chat"
 
 type EmoteCatalogEntry = {
   id: string
@@ -127,6 +127,26 @@ export function hydrateMessageEmotes(
     ...message,
     emotes: catalog
       ? mergeThirdPartyEmotes(message.text, nativeEmotes, catalog)
+      : nativeEmotes,
+  }
+}
+
+export function hydrateSystemMessageEmotes(
+  message: TwitchSystemMessage,
+  catalog: ThirdPartyEmoteCatalog | null
+): TwitchSystemMessage {
+  if (!message.details) {
+    return { ...message, emotes: [] }
+  }
+
+  const nativeEmotes = message.emotes.filter(
+    (emote) => emote.provider === "twitch"
+  )
+
+  return {
+    ...message,
+    emotes: catalog
+      ? mergeThirdPartyEmotes(message.details, nativeEmotes, catalog)
       : nativeEmotes,
   }
 }

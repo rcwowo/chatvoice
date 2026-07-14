@@ -4,6 +4,7 @@
         "date": "2026-07-14",
         "items": [
             "Small redesign that reduces the amount of dead space in the UI.",
+            "Chat alerts like subscriptions, raids, and announcements have been redesigned.",
             "Playback controls are now always visible even with the queue collapsed.",
             "Added ability to install Chatvoice as an app."
         ]

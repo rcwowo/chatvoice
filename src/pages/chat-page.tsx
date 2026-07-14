@@ -215,75 +215,45 @@ const SYSTEM_EVENT_META: Record<
   {
     label: string
     icon: React.ComponentType<{ className?: string }>
-    chipClassName: string
-    cardClassName: string
-    iconWrapClassName: string
-    headlineClassName: string
-    detailsClassName: string
+    barClassName: string
+    accentClassName: string
   }
 > = {
   subscription: {
     label: "Subscription",
     icon: Gift,
-    chipClassName:
-      "border-amber-500/30 bg-amber-500/12 text-amber-700 dark:text-amber-300",
-    cardClassName:
-      "border-amber-500/25 bg-linear-to-r from-amber-500/12 via-amber-500/6 to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]",
-    iconWrapClassName:
-      "bg-amber-500 text-white shadow-[0_10px_25px_-15px_rgba(245,158,11,0.85)]",
-    headlineClassName: "text-foreground",
-    detailsClassName: "text-foreground/75",
+    barClassName: "bg-purple-500/10",
+    accentClassName: "border-purple-500",
   },
   raid: {
     label: "Raid",
     icon: Crown,
-    chipClassName:
-      "border-rose-500/30 bg-rose-500/12 text-rose-700 dark:text-rose-300",
-    cardClassName:
-      "border-rose-500/25 bg-linear-to-r from-rose-500/12 via-rose-500/6 to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]",
-    iconWrapClassName:
-      "bg-rose-500 text-white shadow-[0_10px_25px_-15px_rgba(244,63,94,0.85)]",
-    headlineClassName: "text-foreground",
-    detailsClassName: "text-foreground/78",
+    barClassName: "bg-rose-500/10",
+    accentClassName: "border-rose-500",
   },
   announcement: {
     label: "Announcement",
     icon: Megaphone,
-    chipClassName:
-      "border-sky-500/30 bg-sky-500/12 text-sky-700 dark:text-sky-300",
-    cardClassName:
-      "border-sky-500/25 bg-linear-to-r from-sky-500/12 via-sky-500/6 to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]",
-    iconWrapClassName:
-      "bg-sky-500 text-white shadow-[0_10px_25px_-15px_rgba(14,165,233,0.85)]",
-    headlineClassName: "text-foreground",
-    detailsClassName: "text-foreground/85",
+    barClassName: "bg-sky-500/10",
+    accentClassName: "border-sky-500",
   },
   connection: {
     label: "Connection",
     icon: Gift,
-    chipClassName: "",
-    cardClassName: "",
-    iconWrapClassName: "",
-    headlineClassName: "text-muted-foreground",
-    detailsClassName: "text-muted-foreground",
+    barClassName: "",
+    accentClassName: "",
   },
   notice: {
     label: "Notice",
     icon: Gift,
-    chipClassName: "",
-    cardClassName: "",
-    iconWrapClassName: "",
-    headlineClassName: "text-muted-foreground",
-    detailsClassName: "text-muted-foreground",
+    barClassName: "",
+    accentClassName: "",
   },
   status: {
     label: "Status",
     icon: Gift,
-    chipClassName: "",
-    cardClassName: "",
-    iconWrapClassName: "",
-    headlineClassName: "text-muted-foreground",
-    detailsClassName: "text-muted-foreground",
+    barClassName: "",
+    accentClassName: "",
   },
 }
 
@@ -303,7 +273,8 @@ function SystemMessageRow({
   const timestamp = formatMessageTimestamp(message.receivedAt, timestampFormat)
   const normalizedHeadline = message.headline.trim().toLowerCase()
   const normalizedLabel = meta.label.trim().toLowerCase()
-  const showHeadline = Boolean(message.headline.trim()) && normalizedHeadline !== normalizedLabel
+  const showHeadline =
+    Boolean(message.headline.trim()) && normalizedHeadline !== normalizedLabel
 
   if (!spotlight) {
     return (
@@ -320,58 +291,41 @@ function SystemMessageRow({
     )
   }
 
-  const cardStyle = message.accentColor
+  const accentStyle = message.accentColor
     ? {
-        borderColor: `${message.accentColor}55`,
-        backgroundImage: `linear-gradient(120deg, ${message.accentColor}22, transparent 72%)`,
+        borderLeftColor: message.accentColor,
+        backgroundColor: `${message.accentColor}1a`,
       }
     : undefined
 
   return (
-    <div className="group flex gap-1.5 px-1 py-1 leading-snug">
+    <div
+      className={`group flex gap-1.5 border-l-[3px] px-1 py-1.5 leading-snug ${meta.barClassName} ${meta.accentClassName}`}
+      style={accentStyle}
+    >
       {timestamp ? (
-        <span className="shrink-0 pt-1 text-[11px] leading-snug text-muted-foreground/50 select-none">
+        <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
           {timestamp}
         </span>
       ) : null}
 
-      <div
-        className={`min-w-0 flex-1 rounded-xl border px-3 py-2 ${meta.cardClassName}`}
-        style={cardStyle}
-      >
-        <div className="flex items-start gap-2.5">
-          <span
-            className={`mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full ${meta.iconWrapClassName}`}
-          >
-            <Icon className="size-3.5" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <Icon className="size-3.5 shrink-0 text-foreground" />
+          <span className="text-sm font-semibold text-foreground">
+            {meta.label}
           </span>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[0.18em] uppercase ${meta.chipClassName}`}
-              >
-                {meta.label}
-              </span>
-            </div>
-
-            {showHeadline ? (
-              <p className={`mt-1 text-sm font-medium ${meta.headlineClassName}`}>
-                {message.headline}
-              </p>
-            ) : null}
-
-            {message.details ? (
-              <p
-                className={`text-sm leading-relaxed ${meta.detailsClassName} ${
-                  showHeadline ? "mt-1" : "mt-0.5"
-                }`}
-              >
-                {message.details}
-              </p>
-            ) : null}
-          </div>
         </div>
+
+        {showHeadline ? (
+          <p className="mt-0.5 text-sm text-foreground/85">{message.headline}</p>
+        ) : null}
+
+        {message.details ? (
+          <p className="mt-0.5 text-sm text-foreground/85">
+            <MessageText text={message.details} emotes={message.emotes} />
+          </p>
+        ) : null}
       </div>
     </div>
   )
