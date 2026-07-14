@@ -8,6 +8,8 @@
             "Playback controls are now always visible even with the queue collapsed.",
             "Increased the max number of messages displayed to 300, as well as added a setting to change it.",
             "The settings dialog now works better on smaller screens.",
+            "Changed play/pause behavior to actually pause and resume playback instead of just stopping new speech.",
+            "Added a dedicated on/off toggle for the queue itself.",
             "Added setting to control scale of the live chat.",
             "Added full support for all Twitch badges, even channel-specific ones.",
             "Added ability to install Chatvoice as an app."

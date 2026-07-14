@@ -34,6 +34,7 @@ const messageTimestampFormatSchema = z
 
 const playbackSchema = z.object({
   enabled: z.boolean(),
+  queueEnabled: z.boolean().default(true),
   textTemplate: z.string(),
   autoAssignVoices: z.boolean().default(true),
   defaultVoiceProfileId: z.string().default(""),
@@ -120,6 +121,7 @@ export function createDefaultConfig(): AppConfig {
     },
     playback: {
       enabled: true,
+      queueEnabled: true,
       textTemplate: "{displayName} says {message}",
       autoAssignVoices: true,
       defaultVoiceProfileId: "",

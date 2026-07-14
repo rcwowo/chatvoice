@@ -314,7 +314,7 @@ export function ChatPage() {
     updateConfig,
     timeline,
     playbackQueue,
-    isPlayingQueue,
+    activePlaybackItemId,
     skipCurrent,
     clearQueue,
     memberBadgeByUserId,
@@ -325,8 +325,9 @@ export function ChatPage() {
   const messageListRef = React.useRef<HTMLDivElement>(null)
   const isProgrammaticScrollRef = React.useRef(false)
   const [isScrollPaused, setIsScrollPaused] = React.useState(false)
-  const currentlyPlayingId = isPlayingQueue ? playbackQueue[0]?.id : null
+  const currentlyPlayingId = activePlaybackItemId
   const playbackEnabled = config.playback.enabled
+  const queueEnabled = config.playback.queueEnabled
   const timestampFormat = config.playback.messageTimestampFormat
   const chatScale = config.playback.chatScale
 
@@ -382,6 +383,22 @@ export function ChatPage() {
       playback: { ...current.playback, enabled: !current.playback.enabled },
     }))
   }, [updateConfig])
+
+  const setQueueEnabled = React.useCallback(
+    (enabled: boolean) => {
+      updateConfig((current) => ({
+        ...current,
+        playback: { ...current.playback, queueEnabled: enabled },
+      }))
+    },
+    [updateConfig]
+  )
+
+  const queueEmptyDescription = !queueEnabled
+    ? "Queueing is off. New messages won't be added."
+    : playbackEnabled
+      ? "New messages will be queued for speech."
+      : "Speech is paused. Press play to resume."
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
@@ -505,35 +522,58 @@ export function ChatPage() {
         }
         queue={
           <div className="flex h-full min-h-0 min-w-0 flex-col">
-            <h2 className="shrink-0 px-4 pt-3 pb-2 text-sm font-medium text-muted-foreground">
-              Queue
-              {playbackQueue.length > 0 ? (
-                <span className="ml-1 font-normal text-muted-foreground/70">
-                  ({playbackQueue.length})
-                </span>
-              ) : null}
-            </h2>
+            <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-2">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                Queue ({playbackQueue.length})
+              </h2>
+              <div
+                role="group"
+                aria-label="Queue messages"
+                className="inline-flex items-center rounded-full border border-border bg-background p-0.5"
+              >
+                <button
+                  type="button"
+                  onClick={() => setQueueEnabled(true)}
+                  aria-pressed={queueEnabled}
+                  className={
+                    queueEnabled
+                      ? "rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground transition-colors"
+                      : "rounded-full px-2.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  }
+                >
+                  On
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQueueEnabled(false)}
+                  aria-pressed={!queueEnabled}
+                  className={
+                    !queueEnabled
+                      ? "rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground transition-colors"
+                      : "rounded-full px-2.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  }
+                >
+                  Off
+                </button>
+              </div>
+            </div>
 
             {playbackQueue.length === 0 ? (
               <div className="flex min-h-0 flex-1 items-center justify-center px-4">
                 <EmptyState
                   icon={ListOrdered}
                   title="Queue is empty"
-                  description={
-                    playbackEnabled
-                      ? "New messages will be queued for speech."
-                      : "Speech is paused. Press play to resume."
-                  }
+                  description={queueEmptyDescription}
                 />
               </div>
             ) : (
               <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-2">
                 <div className="w-full max-w-full min-w-0 space-y-2">
-                  {playbackQueue.map((item, index) => (
+                  {playbackQueue.map((item) => (
                     <div
                       key={item.id}
                       className={
-                        index === 0 && isPlayingQueue
+                        item.id === activePlaybackItemId
                           ? "w-full max-w-full min-w-0 overflow-hidden rounded-lg border-2 border-primary bg-muted/60 p-3"
                           : "w-full max-w-full min-w-0 overflow-hidden rounded-lg bg-muted/40 p-3"
                       }
