@@ -57,6 +57,38 @@ const playbackSchema = z.object({
   blockedTerms: z.array(z.string()),
 })
 
+export const commandRoleSchema = z.enum([
+  "broadcaster",
+  "moderator",
+  "vip",
+  "subscriber",
+  "everyone",
+])
+
+const commandSettingSchema = z.object({
+  enabled: z.boolean().default(false),
+  minRole: commandRoleSchema.default("moderator"),
+})
+
+const DEFAULT_MOD_COMMAND = {
+  enabled: false,
+  minRole: "moderator" as const,
+}
+
+const DEFAULT_EVERYONE_COMMAND = {
+  enabled: false,
+  minRole: "everyone" as const,
+}
+
+const commandsSchema = z.object({
+  whitelist: z.array(z.string()).default([]),
+  queue: commandSettingSchema.default(DEFAULT_MOD_COMMAND),
+  playback: commandSettingSchema.default(DEFAULT_MOD_COMMAND),
+  skip: commandSettingSchema.default(DEFAULT_MOD_COMMAND),
+  clear: commandSettingSchema.default(DEFAULT_MOD_COMMAND),
+  newVoice: commandSettingSchema.default(DEFAULT_EVERYONE_COMMAND),
+})
+
 const twitchSchema = z.object({
   channel: z.string(),
   savedChannels: z.array(z.string()).default([]),
@@ -71,12 +103,19 @@ const appConfigSchema = z.object({
   updatedAt: z.string().min(1),
   twitch: twitchSchema,
   playback: playbackSchema,
+  commands: commandsSchema.default({
+    whitelist: [],
+    queue: DEFAULT_MOD_COMMAND,
+    playback: DEFAULT_MOD_COMMAND,
+    skip: DEFAULT_MOD_COMMAND,
+    clear: DEFAULT_MOD_COMMAND,
+    newVoice: DEFAULT_EVERYONE_COMMAND,
+  }),
   voiceProfiles: z.array(voiceProfileSchema).min(1),
   // Assignments are now stored in IndexedDB. This field is only used during
   // backup/restore and migration. It is NOT kept in the runtime config.
   assignments: z.record(z.string(), voiceAssignmentSchema).optional(),
 })
-
 const backupEnvelopeSchema = z.object({
   app: z.literal("chatvoice"),
   appVersion: z.string().min(1),
@@ -90,9 +129,19 @@ export type VoiceAssignment = z.infer<typeof voiceAssignmentSchema>
 export type QueueMode = z.infer<typeof queueModeSchema>
 export type MessageTimestampFormat = z.infer<typeof messageTimestampFormatSchema>
 export type PlaybackConfig = z.infer<typeof playbackSchema>
+export type CommandRole = z.infer<typeof commandRoleSchema>
+export type CommandSetting = z.infer<typeof commandSettingSchema>
+export type CommandsConfig = z.infer<typeof commandsSchema>
 export type TwitchConfig = z.infer<typeof twitchSchema>
 export type AppConfig = z.infer<typeof appConfigSchema>
 
+export const COMMAND_ROLE_OPTIONS: { value: CommandRole; label: string }[] = [
+  { value: "broadcaster", label: "Broadcaster" },
+  { value: "moderator", label: "Moderators" },
+  { value: "vip", label: "VIPs" },
+  { value: "subscriber", label: "Subscribers" },
+  { value: "everyone", label: "Everyone" },
+]
 export type BackupEnvelope = z.infer<typeof backupEnvelopeSchema>
 
 const DEFAULT_VOICE_PROFILES: VoiceProfile[] = [
@@ -142,6 +191,14 @@ export function createDefaultConfig(): AppConfig {
       chatScale: 100,
       blockedUsers: [],
       blockedTerms: [],
+    },
+    commands: {
+      whitelist: [],
+      queue: { ...DEFAULT_MOD_COMMAND },
+      playback: { ...DEFAULT_MOD_COMMAND },
+      skip: { ...DEFAULT_MOD_COMMAND },
+      clear: { ...DEFAULT_MOD_COMMAND },
+      newVoice: { ...DEFAULT_EVERYONE_COMMAND },
     },
     voiceProfiles: DEFAULT_VOICE_PROFILES,
   }
@@ -252,6 +309,12 @@ export function migrateConfig(input: unknown): AppConfig {
         ...createDefaultConfig().playback,
         ...(typeof object.playback === "object" && object.playback
           ? object.playback
+          : {}),
+      },
+      commands: {
+        ...createDefaultConfig().commands,
+        ...(typeof object.commands === "object" && object.commands
+          ? object.commands
           : {}),
       },
       schemaVersion: CHATVOICE_SCHEMA_VERSION,

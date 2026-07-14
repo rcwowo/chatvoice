@@ -58,6 +58,7 @@ export function BackupTab() {
           <li>· Voice profile library</li>
           <li>· Randomized user assignments</li>
           <li>· Filters, limits, and blocklists</li>
+          <li>· Chat command settings and whitelist</li>
           <li>· Schema version metadata for migrations</li>
         </ul>
       </div>

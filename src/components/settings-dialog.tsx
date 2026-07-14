@@ -3,6 +3,7 @@ import {
   AudioLinesIcon,
   DatabaseIcon,
   ShieldIcon,
+  TerminalIcon,
   UsersIcon,
   WrenchIcon,
 } from "lucide-react"
@@ -12,6 +13,7 @@ import { GeneralTab } from "@/components/settings/general-tab"
 import { VoicesTab } from "@/components/settings/voices-tab"
 import { ModerationTab } from "@/components/settings/moderation-tab"
 import { UsersTab } from "@/components/settings/users-tab"
+import { CommandsTab } from "@/components/settings/commands-tab"
 import { BackupTab } from "@/components/settings/backup-tab"
 import { cn } from "@/lib/utils"
 
@@ -39,7 +41,13 @@ function useCompactSettings() {
 // Settings tab IDs
 // ---------------------------------------------------------------------------
 
-type SettingsTab = "general" | "voices" | "moderation" | "users" | "backup"
+type SettingsTab =
+  | "general"
+  | "voices"
+  | "moderation"
+  | "users"
+  | "commands"
+  | "backup"
 
 const SETTINGS_TABS: {
   id: SettingsTab
@@ -50,6 +58,7 @@ const SETTINGS_TABS: {
   { id: "voices", label: "Voices", icon: AudioLinesIcon },
   { id: "moderation", label: "Moderation", icon: ShieldIcon },
   { id: "users", label: "Users", icon: UsersIcon },
+  { id: "commands", label: "Commands", icon: TerminalIcon },
   { id: "backup", label: "Backup", icon: DatabaseIcon },
 ]
 
@@ -131,6 +140,7 @@ export function SettingsDialog({
               {activeTab === "voices" && <VoicesTab />}
               {activeTab === "moderation" && <ModerationTab />}
               {activeTab === "users" && <UsersTab />}
+              {activeTab === "commands" && <CommandsTab />}
               {activeTab === "backup" && <BackupTab />}
             </div>
           </div>
