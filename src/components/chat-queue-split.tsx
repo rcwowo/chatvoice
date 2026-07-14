@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 
 const COLLAPSED_BAR_WIDTH_PX = 40
 const COLLAPSE_THRESHOLD_PX = 72
-const RESIZE_HANDLE_WIDTH_PX = 12
+const RESIZE_HANDLE_WIDTH_PX = 1
 const MIN_CHAT_WIDTH_PX = 300
 const MIN_QUEUE_WIDTH_PX = 180
 const MIN_CHAT_FRACTION = 0.35
@@ -20,6 +20,7 @@ const SPLIT_MEDIA_QUERY = "(min-width: 640px)"
 type ChatQueueSplitProps = {
   chat: React.ReactNode
   queue: React.ReactNode
+  playback: React.ReactNode
 }
 
 function CollapsedRail({
@@ -35,7 +36,7 @@ function CollapsedRail({
     <button
       type="button"
       onClick={onExpand}
-      className="flex h-full w-10 shrink-0 flex-col items-center justify-center gap-2 rounded-xl border border-border bg-muted/30 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+      className="flex h-full w-10 shrink-0 flex-col items-center justify-center gap-2 bg-transparent text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
       aria-label={`Expand ${label.toLowerCase()}`}
     >
       <Icon className="size-4 shrink-0" aria-hidden />
@@ -70,21 +71,24 @@ function ResizeHandle({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       className={cn(
-        "group relative z-10 flex w-3 shrink-0 cursor-col-resize touch-none items-center justify-center self-stretch",
+        "group relative z-10 w-px shrink-0 cursor-col-resize touch-none self-stretch",
         isDragging && "select-none"
       )}
     >
       <div
         aria-hidden
+        className="absolute inset-y-0 -left-1.5 z-10 w-3"
+      />
+      <div
+        aria-hidden
         className={cn(
-          "pointer-events-none absolute inset-y-4 left-1/2 w-px -translate-x-1/2 bg-border opacity-0 transition-opacity",
-          "group-hover:opacity-100",
-          isDragging && "opacity-100"
+          "pointer-events-none absolute inset-y-0 left-0 w-px bg-border transition-colors",
+          isDragging && "bg-foreground/25"
         )}
       />
       <GripVertical
         className={cn(
-          "relative z-10 size-3 shrink-0 text-muted-foreground/20 transition-colors",
+          "pointer-events-none absolute top-1/2 left-1/2 z-10 size-3 -translate-x-1/2 -translate-y-1/2 text-muted-foreground/0 transition-colors",
           "group-hover:text-muted-foreground/65",
           isDragging && "text-muted-foreground/80"
         )}
@@ -112,12 +116,16 @@ function useSplitLayoutEnabled() {
   return enabled
 }
 
-export function ChatQueueSplit({ chat, queue }: ChatQueueSplitProps) {
+export function ChatQueueSplit({ chat, queue, playback }: ChatQueueSplitProps) {
   const splitEnabled = useSplitLayoutEnabled()
   const containerRef = React.useRef<HTMLDivElement>(null)
+  const queuePanelRef = React.useRef<HTMLDivElement>(null)
+  const playbackBarRef = React.useRef<HTMLDivElement>(null)
   const [layout, setLayout] = React.useState(loadChatLayoutPrefs)
   const layoutRef = React.useRef(layout)
   const [isDragging, setIsDragging] = React.useState(false)
+  const [queuePanelWidth, setQueuePanelWidth] = React.useState(MIN_QUEUE_WIDTH_PX)
+  const [playbackHeight, setPlaybackHeight] = React.useState(0)
 
   const commitLayout = React.useCallback((next: ChatLayoutPrefs) => {
     layoutRef.current = next
@@ -233,11 +241,49 @@ export function ChatQueueSplit({ chat, queue }: ChatQueueSplitProps) {
     saveChatLayoutPrefs(next)
   }, [commitLayout])
 
+  React.useEffect(() => {
+    const panel = queuePanelRef.current
+    if (!panel || typeof ResizeObserver === "undefined") return
+
+    const observer = new ResizeObserver((entries) => {
+      if (layoutRef.current.queueCollapsed) return
+      const width = entries[0]?.contentRect.width
+      if (typeof width === "number" && width > COLLAPSED_BAR_WIDTH_PX) {
+        setQueuePanelWidth(width)
+      }
+    })
+    observer.observe(panel)
+    return () => observer.disconnect()
+  }, [splitEnabled])
+
+  React.useEffect(() => {
+    const bar = playbackBarRef.current
+    if (!bar || typeof ResizeObserver === "undefined") return
+
+    const observer = new ResizeObserver((entries) => {
+      const height = entries[0]?.contentRect.height
+      if (typeof height === "number" && height > 0) {
+        setPlaybackHeight(height)
+      }
+    })
+    observer.observe(bar)
+    return () => observer.disconnect()
+  }, [splitEnabled])
+
   if (!splitEnabled) {
     return (
-      <div className="flex h-full min-h-0 flex-1 flex-col gap-4">
-        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">{chat}</div>
-        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">{queue}</div>
+      <div className="flex h-full min-h-0 flex-1 flex-col">
+        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col border-b border-border">
+          {chat}
+        </div>
+        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            {queue}
+          </div>
+          <div className="shrink-0 border-t border-border bg-background">
+            {playback}
+          </div>
+        </div>
       </div>
     )
   }
@@ -256,10 +302,14 @@ export function ChatQueueSplit({ chat, queue }: ChatQueueSplitProps) {
         ? { flex: "1 1 0%" }
         : { flex: `${1 - layout.chatFraction} 1 0%` }
 
+  const playbackWidth = layout.queueCollapsed
+    ? MIN_QUEUE_WIDTH_PX
+    : Math.max(queuePanelWidth, MIN_QUEUE_WIDTH_PX)
+
   return (
     <div
       ref={containerRef}
-      className="flex h-full min-h-0 flex-1 flex-row items-stretch"
+      className="relative flex h-full min-h-0 flex-1 flex-row items-stretch"
     >
       <div
         className={cn(
@@ -287,6 +337,7 @@ export function ChatQueueSplit({ chat, queue }: ChatQueueSplitProps) {
       />
 
       <div
+        ref={queuePanelRef}
         className={cn(
           "flex h-full min-h-0 min-w-0 flex-1 flex-col",
           layout.queueCollapsed && "shrink-0 flex-none"
@@ -294,14 +345,38 @@ export function ChatQueueSplit({ chat, queue }: ChatQueueSplitProps) {
         style={queueStyle}
       >
         {layout.queueCollapsed ? (
-          <CollapsedRail
-            label="Queue"
-            icon={ListOrdered}
-            onExpand={expandQueue}
-          />
+          <div
+            className="flex h-full min-h-0 flex-col"
+            style={{ paddingBottom: playbackHeight }}
+          >
+            <CollapsedRail
+              label="Queue"
+              icon={ListOrdered}
+              onExpand={expandQueue}
+            />
+          </div>
         ) : (
-          queue
+          <div
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+            style={{ paddingBottom: playbackHeight }}
+          >
+            {queue}
+          </div>
         )}
+      </div>
+
+      <div
+        ref={playbackBarRef}
+        className={cn(
+          "absolute right-0 bottom-0 z-20 bg-background",
+          "border-t border-border",
+          layout.queueCollapsed
+            ? "rounded-tl-xl border-l border-border"
+            : "rounded-tl-none"
+        )}
+        style={{ width: playbackWidth }}
+      >
+        {playback}
       </div>
     </div>
   )

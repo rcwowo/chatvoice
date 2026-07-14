@@ -381,7 +381,6 @@ export function ChatPage() {
   const {
     config,
     updateConfig,
-    connectionState,
     timeline,
     playbackQueue,
     isPlayingQueue,
@@ -454,183 +453,182 @@ export function ChatPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-    <ChatQueueSplit
-      chat={
-      <div className="flex h-full min-h-0 min-w-0 flex-col">
-        <h2 className="mb-1 h-5 shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Chat
-          {connectionState.connected && connectionState.channel ? (
-            <span className="ml-1.5 font-normal text-muted-foreground/70 normal-case">
-              #{connectionState.channel}
-            </span>
-          ) : null}
-        </h2>
-        <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-border">
-          {timeline.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <EmptyState
-                icon={MessagesSquareIcon}
-                title="No messages yet"
-                description="Once connected, chat messages will appear here."
-              />
-            </div>
-          ) : (
-            <div
-              ref={chatContainerRef}
-              onScroll={handleChatScroll}
-              className="flex h-full flex-col overflow-y-auto overscroll-contain"
-            >
-              <div ref={messageListRef} className="mt-auto px-3 py-2">
-                {timeline.map((entry) => {
-                  if (entry.kind === "system") {
-                    return (
-                      <SystemMessageRow
-                        key={entry.message.id}
-                        message={entry.message}
-                        timestampFormat={timestampFormat}
-                      />
-                    )
-                  }
+      <ChatQueueSplit
+        chat={
+          <div className="flex h-full min-h-0 min-w-0 flex-col">
+            <h2 className="shrink-0 px-4 pt-3 pb-2 text-sm font-medium text-muted-foreground">
+              Live Chat
+            </h2>
+            <div className="relative min-h-0 flex-1 overflow-hidden">
+              {timeline.length === 0 ? (
+                <div className="flex h-full items-center justify-center px-4">
+                  <EmptyState
+                    icon={MessagesSquareIcon}
+                    title="No messages yet"
+                    description="Once connected, chat messages will appear here."
+                  />
+                </div>
+              ) : (
+                <div
+                  ref={chatContainerRef}
+                  onScroll={handleChatScroll}
+                  className="flex h-full flex-col overflow-y-auto overscroll-contain"
+                >
+                  <div ref={messageListRef} className="mt-auto px-4 py-2">
+                    {timeline.map((entry) => {
+                      if (entry.kind === "system") {
+                        return (
+                          <SystemMessageRow
+                            key={entry.message.id}
+                            message={entry.message}
+                            timestampFormat={timestampFormat}
+                          />
+                        )
+                      }
 
-                  const message = entry.message
-                  const isPlaying = message.id === currentlyPlayingId
-                  const timestamp = formatMessageTimestamp(
-                    message.receivedAt,
-                    timestampFormat
-                  )
-                  return (
-                    <div
-                      key={message.id}
-                      className={`group flex gap-1.5 px-1 py-0.5 leading-snug ${
-                        isPlaying
-                          ? "rounded bg-primary/10"
-                          : "hover:bg-muted/40"
-                      }`}
-                    >
-                      {timestamp ? (
-                        <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
-                          {timestamp}
-                        </span>
-                      ) : null}
-
-                      <span className="min-w-0 flex-1 text-sm">
-                        <ChatBadges
-                          badges={message.badges}
-                          memberBadge={
-                            message.userId
-                              ? memberBadgeByUserId.get(message.userId)
-                              : null
-                          }
-                        />
-                        <span
-                          className="font-semibold"
-                          style={
-                            message.color ? { color: message.color } : undefined
-                          }
+                      const message = entry.message
+                      const isPlaying = message.id === currentlyPlayingId
+                      const timestamp = formatMessageTimestamp(
+                        message.receivedAt,
+                        timestampFormat
+                      )
+                      return (
+                        <div
+                          key={message.id}
+                          className={`group flex gap-1.5 px-1 py-0.5 leading-snug ${
+                            isPlaying
+                              ? "rounded bg-primary/10"
+                              : "hover:bg-muted/40"
+                          }`}
                         >
-                          {message.displayName}
-                        </span>
-                        <span className="text-muted-foreground">: </span>
-                        <MessageText text={message.text} emotes={message.emotes} />
-                        {isPlaying ? (
-                          <Badge
-                            variant="default"
-                            className="ml-1.5 inline-flex h-4 px-1 align-middle text-[10px] leading-none"
-                          >
-                            <Volume2 />
-                          </Badge>
-                        ) : null}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+                          {timestamp ? (
+                            <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
+                              {timestamp}
+                            </span>
+                          ) : null}
 
-          {timeline.length > 0 && isScrollPaused ? (
-            <div className="pointer-events-none absolute right-0 bottom-3 left-0 z-10 flex justify-center px-3">
-              <Button
-                type="button"
-                size="sm"
-                className="pointer-events-auto shadow-md"
-                onClick={() => {
-                  setIsScrollPaused(false)
-                  scrollToBottom("smooth")
-                }}
-              >
-                Scrolling Paused
-              </Button>
-            </div>
-          ) : null}
-        </div>
-      </div>
-      }
-      queue={
-      <div className="flex h-full min-h-0 min-w-0 flex-col">
-        <h2 className="mb-1 h-5 shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Queue
-          {playbackQueue.length > 0 ? (
-            <span className="ml-1 font-normal text-muted-foreground/70 normal-case">
-              ({playbackQueue.length})
-            </span>
-          ) : null}
-        </h2>
-
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
-          {playbackQueue.length === 0 ? (
-            <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-border">
-            <EmptyState
-              icon={ListOrdered}
-              title="Queue is empty"
-              description={
-                playbackEnabled
-                  ? "New messages will be queued for speech."
-                  : "Speech is paused. Press play to resume."
-              }
-            />
-          </div>
-        ) : (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border">
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3">
-              <div className="w-full max-w-full min-w-0 space-y-2">
-                {playbackQueue.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className={
-                      index === 0 && isPlayingQueue
-                        ? "@container/queue-item w-full max-w-full min-w-0 overflow-hidden rounded-xl border-2 border-primary bg-primary/5 p-3"
-                        : "@container/queue-item w-full max-w-full min-w-0 overflow-hidden rounded-xl border border-border bg-background p-3"
-                    }
-                  >
-                    <div className="flex min-w-0 flex-col gap-1.5 @min-[14rem]/queue-item:flex-row @min-[14rem]/queue-item:items-center @min-[14rem]/queue-item:gap-2">
-                      <p
-                        className="min-w-0 truncate font-medium text-sm @min-[14rem]/queue-item:flex-1"
-                        title={item.assignment.displayName}
-                      >
-                        {item.assignment.displayName}
-                      </p>
-                      <Badge
-                        variant="outline"
-                        className="w-fit max-w-full shrink-0 self-start truncate @min-[14rem]/queue-item:max-w-[11rem]"
-                        title={item.profile.label}
-                      >
-                        {item.profile.label}
-                      </Badge>
-                    </div>
-                    <p className="mt-2 break-words text-sm text-muted-foreground @min-[14rem]/queue-item:mt-1.5">
-                      {item.text}
-                    </p>
+                          <span className="min-w-0 flex-1 text-sm">
+                            <ChatBadges
+                              badges={message.badges}
+                              memberBadge={
+                                message.userId
+                                  ? memberBadgeByUserId.get(message.userId)
+                                  : null
+                              }
+                            />
+                            <span
+                              className="font-semibold"
+                              style={
+                                message.color
+                                  ? { color: message.color }
+                                  : undefined
+                              }
+                            >
+                              {message.displayName}
+                            </span>
+                            <span className="text-muted-foreground">: </span>
+                            <MessageText
+                              text={message.text}
+                              emotes={message.emotes}
+                            />
+                            {isPlaying ? (
+                              <Badge
+                                variant="default"
+                                className="ml-1.5 inline-flex h-4 px-1 align-middle text-[10px] leading-none"
+                              >
+                                <Volume2 />
+                              </Badge>
+                            ) : null}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {timeline.length > 0 && isScrollPaused ? (
+                <div className="pointer-events-none absolute right-0 bottom-3 left-0 z-10 flex justify-center px-4">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="pointer-events-auto shadow-md"
+                    onClick={() => {
+                      setIsScrollPaused(false)
+                      scrollToBottom("smooth")
+                    }}
+                  >
+                    Scrolling Paused
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </div>
-        )}
+        }
+        queue={
+          <div className="flex h-full min-h-0 min-w-0 flex-col">
+            <h2 className="shrink-0 px-4 pt-3 pb-2 text-sm font-medium text-muted-foreground">
+              Queue
+              {playbackQueue.length > 0 ? (
+                <span className="ml-1 font-normal text-muted-foreground/70">
+                  ({playbackQueue.length})
+                </span>
+              ) : null}
+            </h2>
 
+            {playbackQueue.length === 0 ? (
+              <div className="flex min-h-0 flex-1 items-center justify-center px-4">
+                <EmptyState
+                  icon={ListOrdered}
+                  title="Queue is empty"
+                  description={
+                    playbackEnabled
+                      ? "New messages will be queued for speech."
+                      : "Speech is paused. Press play to resume."
+                  }
+                />
+              </div>
+            ) : (
+              <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-2">
+                <div className="w-full max-w-full min-w-0 space-y-2">
+                  {playbackQueue.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className={
+                        index === 0 && isPlayingQueue
+                          ? "w-full max-w-full min-w-0 overflow-hidden rounded-lg border-2 border-primary bg-muted/60 p-3"
+                          : "w-full max-w-full min-w-0 overflow-hidden rounded-lg bg-muted/40 p-3"
+                      }
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p
+                          className="min-w-0 flex-1 truncate font-medium text-sm"
+                          title={item.assignment.displayName}
+                        >
+                          {item.assignment.displayName}
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className="h-4 max-w-[11rem] shrink-0 truncate px-1.5 text-[10px] leading-none"
+                          title={item.profile.label}
+                        >
+                          {item.profile.label}
+                        </Badge>
+                      </div>
+                      <p className="mt-1.5 break-words text-[11px] leading-snug text-muted-foreground/50">
+                        {item.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        }
+        playback={
           <TooltipProvider>
             <div
-              className="flex shrink-0 items-center justify-center gap-5"
+              className="flex shrink-0 items-center justify-center gap-5 px-4 py-4"
               role="toolbar"
               aria-label="Speech playback controls"
             >
@@ -690,10 +688,8 @@ export function ChatPage() {
               </Tooltip>
             </div>
           </TooltipProvider>
-        </div>
-      </div>
-      }
-    />
+        }
+      />
     </div>
   )
 }

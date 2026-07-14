@@ -1,5 +1,13 @@
 [
     {
+        "version": "1.2.0",
+        "date": "2026-07-14",
+        "items": [
+            "Small redesign that reduces the amount of dead space in the UI.",
+            "Playback controls are now always visible even with the queue collapsed."
+        ]
+    },
+    {
         "version": "1.1.2",
         "date": "2026-06-21",
         "items": [
