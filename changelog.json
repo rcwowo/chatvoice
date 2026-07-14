@@ -7,6 +7,7 @@
             "Chat alerts like subscriptions, raids, and announcements have been redesigned.",
             "Playback controls are now always visible even with the queue collapsed.",
             "Increased the max number of messages displayed to 300, as well as added a setting to change it.",
+            "The settings dialog now works better on smaller screens.",
             "Added setting to control scale of the live chat.",
             "Added full support for all Twitch badges, even channel-specific ones.",
             "Added ability to install Chatvoice as an app."
