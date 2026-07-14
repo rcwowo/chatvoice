@@ -13,8 +13,8 @@ import {
 import { toast } from "sonner"
 
 import type { QueueMode } from "@/lib/chatvoice-config"
-import iconSrc from "/icon.png"
-import logoSrc from "/logo.png"
+import iconSrc from "/branding/icon.png"
+import logoSrc from "/branding/logo.png"
 import { useChatvoiceSettings } from "@/lib/chatvoice-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

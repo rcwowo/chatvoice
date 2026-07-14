@@ -15,8 +15,8 @@ import type {
   MessageTimestampFormat,
   QueueMode,
 } from "@/lib/chatvoice-config"
-import logoSrc from "/logo.png"
-import iconSrc from "/icon.png"
+import logoSrc from "/branding/logo.png"
+import iconSrc from "/branding/icon.png"
 import { useChatvoiceSettings } from "@/lib/chatvoice-context"
 import { useTheme } from "@/components/theme-provider"
 import { Badge } from "@/components/ui/badge"

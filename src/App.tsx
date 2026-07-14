@@ -1,4 +1,5 @@
 import * as React from "react"
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { toast } from "sonner"
 import { SparklesIcon } from "lucide-react"
 
@@ -10,6 +11,7 @@ import { OnboardingDialog } from "@/components/onboarding-dialog"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { ChangelogDialog } from "@/components/changelog-dialog"
 import { ChatPage } from "@/pages/chat-page"
+import { LandingPage } from "@/pages/landing-page"
 
 function DashboardLayout() {
   const { ready, needsOnboarding, completeOnboarding } = useChatvoiceSettings()
@@ -63,13 +65,25 @@ function DashboardLayout() {
   )
 }
 
-export function App() {
+function AppShell() {
   return (
     <TooltipProvider>
       <ChatvoiceProvider>
         <DashboardLayout />
       </ChatvoiceProvider>
     </TooltipProvider>
+  )
+}
+
+export function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/app" element={<AppShell />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
