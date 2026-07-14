@@ -4,7 +4,8 @@
         "date": "2026-07-14",
         "items": [
             "Small redesign that reduces the amount of dead space in the UI.",
-            "Playback controls are now always visible even with the queue collapsed."
+            "Playback controls are now always visible even with the queue collapsed.",
+            "Added ability to install Chatvoice as an app."
         ]
     },
     {
