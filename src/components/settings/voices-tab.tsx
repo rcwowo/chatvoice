@@ -1,5 +1,12 @@
 import * as React from "react"
-import { PlusIcon, PlayIcon, ShuffleIcon, SquareIcon, Trash2Icon } from "lucide-react"
+import {
+  CircleHelpIcon,
+  PlusIcon,
+  PlayIcon,
+  ShuffleIcon,
+  SquareIcon,
+  Trash2Icon,
+} from "lucide-react"
 
 import { useChatvoiceSettings } from "@/lib/chatvoice-context"
 import type { ChatvoiceConfigContextValue } from "@/lib/chatvoice-context"
@@ -34,10 +41,42 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   SectionHeading,
   SettingsToggle,
   SettingsField,
 } from "@/components/settings/settings-primitives"
+
+const VOICE_PARAM_HINT =
+  "Not all voices support adjusting rate, pitch, or volume. Cloud voices especially often ignore these settings."
+
+function VoiceParamHeader({ label }: { label: string }) {
+  return (
+    <TableHead className="text-center">
+      <span className="inline-flex items-center justify-center gap-1">
+        {label}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex text-muted-foreground transition-colors hover:text-foreground"
+              aria-label={VOICE_PARAM_HINT}
+            >
+              <CircleHelpIcon className="size-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-56 text-pretty">
+            {VOICE_PARAM_HINT}
+          </TooltipContent>
+        </Tooltip>
+      </span>
+    </TableHead>
+  )
+}
 
 export function VoicesTab() {
   const { config, updateConfig, voices, voicesLoading } = useChatvoiceSettings()
@@ -133,9 +172,9 @@ export function VoicesTab() {
             <TableRow>
               <TableHead>Label</TableHead>
               <TableHead>Voice</TableHead>
-              <TableHead className="text-center">Rate</TableHead>
-              <TableHead className="text-center">Pitch</TableHead>
-              <TableHead className="text-center">Vol</TableHead>
+              <VoiceParamHeader label="Rate" />
+              <VoiceParamHeader label="Pitch" />
+              <VoiceParamHeader label="Vol" />
               <TableHead className="text-center">Enabled</TableHead>
               <TableHead className="w-20" />
             </TableRow>
