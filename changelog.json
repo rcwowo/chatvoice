@@ -3,9 +3,10 @@
         "version": "1.2.0",
         "date": "2026-07-14",
         "items": [
-            "Small redesign that reduces the amount of dead space in the UI.",
+            "Redesigned the UI to reduce the amount of dead space.",
             "Chat alerts like subscriptions, raids, and announcements have been redesigned.",
             "Playback controls are now always visible even with the queue collapsed.",
+            "Added full support for all Twitch badges, even channel-specific ones.",
             "Added ability to install Chatvoice as an app."
         ]
     },

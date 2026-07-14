@@ -16,6 +16,8 @@
 export type TwitchBadge = {
   set: string
   version: string
+  imageUrl?: string
+  title?: string
 }
 
 export type TwitchEmoteProvider = "twitch" | "bttv" | "ffz" | "7tv"

@@ -1,22 +1,15 @@
 import * as React from "react"
 import {
-  BadgeCheck,
   Crown,
-  Gem,
   Gift,
   ListOrdered,
   Megaphone,
   MessagesSquareIcon,
-  Palette,
   PauseIcon,
   PlayIcon,
   SkipForwardIcon,
-  Star,
-  Swords,
   Trash2Icon,
-  Video,
   Volume2,
-  Wrench,
 } from "lucide-react"
 
 import type { MessageTimestampFormat } from "@/lib/chatvoice-config"
@@ -44,23 +37,8 @@ import { ChatQueueSplit } from "@/components/chat-queue-split"
 import { EmptyState } from "@/components/dashboard-primitives"
 
 // ---------------------------------------------------------------------------
-// Badge rendering (role badges only)
+// Badge rendering
 // ---------------------------------------------------------------------------
-
-const ROLE_BADGES: Record<
-  string,
-  { label: string; bg: string; icon: React.ComponentType<{ className?: string }> }
-> = {
-  "staff": { label: "Staff", bg: "#000000", icon: Wrench },
-  "partner": { label: "Partner", bg: "#a96dff", icon: BadgeCheck },
-  "premium": { label: "Prime", bg: "#0096d6", icon: Crown },
-  "broadcaster": { label: "Broadcaster", bg: "#E91916", icon: Video },
-  "moderator": { label: "Moderator", bg: "#00AD03", icon: Swords },
-  "vip": { label: "VIP", bg: "#A10886", icon: Gem },
-  "founder": { label: "Founder", bg: "#b638ef", icon: Crown },
-  "artist-badge": { label: "Artist", bg: "#1e69ff", icon: Palette },
-  "subscriber": { label: "Subscriber", bg: "#8204B5", icon: Star },
-}
 
 function HoverTooltip({
   label,
@@ -84,25 +62,24 @@ function ChatBadges({
   badges: TwitchBadge[]
   memberBadge?: MemberBadge | null
 }) {
-  const knownBadges = badges.filter((badge) => ROLE_BADGES[badge.set])
-  if (knownBadges.length === 0 && !memberBadge) return null
+  const resolvedBadges = badges.filter((badge) => badge.imageUrl)
+  if (resolvedBadges.length === 0 && !memberBadge) return null
 
   return (
     <span className="mr-1 inline-flex items-center gap-0.5 align-middle">
-      {knownBadges.map((badge, i) => {
-        const role = ROLE_BADGES[badge.set]!
-        const Icon = role.icon
-        return (
-          <HoverTooltip key={`${badge.set}-${i}`} label={role.label}>
-            <span
-              className="inline-flex size-4 items-center justify-center rounded align-middle"
-              style={{ backgroundColor: role.bg }}
-            >
-              <Icon className="size-3 text-white" />
-            </span>
-          </HoverTooltip>
-        )
-      })}
+      {resolvedBadges.map((badge, i) => (
+        <HoverTooltip
+          key={`${badge.set}-${badge.version}-${i}`}
+          label={badge.title ?? badge.set}
+        >
+          <img
+            src={badge.imageUrl}
+            alt={badge.title ?? badge.set}
+            className="inline-block size-4 align-middle"
+            loading="lazy"
+          />
+        </HoverTooltip>
+      ))}
       {memberBadge ? (
         <HoverTooltip label={memberBadge.name}>
           <img
