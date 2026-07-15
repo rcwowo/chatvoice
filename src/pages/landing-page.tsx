@@ -2,7 +2,10 @@ import { Link } from "react-router-dom"
 import { ArrowRightIcon } from "lucide-react"
 
 import iconSrc from "/branding/icon.png"
+import { BrowserSupportSection } from "@/components/landing/browser-support-section"
+import { FaqSection } from "@/components/landing/faq-section"
 import { LandingFooter } from "@/components/landing/landing-footer"
+import { VoiceAssignmentDemo } from "@/components/landing/voice-assignment-demo"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -131,6 +134,36 @@ export function LandingPage() {
             </div>
           </div>
         </div>
+
+        <BrowserSupportSection className="mt-10 sm:mt-12" />
+
+        <section
+          className="mt-24 flex w-full max-w-4xl flex-col items-center text-center sm:mt-28 md:mt-32"
+          aria-labelledby="voice-assignment-heading"
+        >
+          <h2
+            id="voice-assignment-heading"
+            className={cn(
+              "font-syne text-3xl font-bold tracking-tight text-balance sm:text-4xl",
+              "animate-in fade-in slide-in-from-bottom-3 duration-700 delay-500 fill-mode-both"
+            )}
+          >
+            Make them all unique
+          </h2>
+          <p
+            className={cn(
+              "mt-4 max-w-xl text-base text-pretty text-white/55 sm:text-lg",
+              "animate-in fade-in slide-in-from-bottom-3 duration-700 delay-600 fill-mode-both"
+            )}
+          >
+            You can assign or auto-assign voices to specific people in your chat,
+            that way you can tell who's talking without looking away from your game.
+          </p>
+
+          <VoiceAssignmentDemo className="mt-10 w-full sm:mt-12" />
+        </section>
+
+        <FaqSection className="mt-24 sm:mt-28 md:mt-32" />
       </main>
 
       <div className="relative z-10">

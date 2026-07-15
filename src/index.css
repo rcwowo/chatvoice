@@ -135,3 +135,15 @@
     @apply font-sans;
   }
 }
+
+@keyframes assignment-flow {
+  to {
+    stroke-dashoffset: -44;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assignment-arrow-line {
+    animation: none !important;
+  }
+}
