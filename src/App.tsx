@@ -41,15 +41,13 @@ function DashboardLayout() {
 
   if (needsOnboarding) {
     return (
-      <div className="min-h-svh bg-background">
-        <OnboardingDialog
-          open
-          onComplete={() => {
-            initLastSeenVersion()
-            completeOnboarding()
-          }}
-        />
-      </div>
+      <OnboardingDialog
+        open
+        onComplete={() => {
+          initLastSeenVersion()
+          completeOnboarding()
+        }}
+      />
     )
   }
 

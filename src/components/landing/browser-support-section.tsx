@@ -1,43 +1,15 @@
 import { AudioLinesIcon, CircleAlertIcon, CircleCheckIcon } from "lucide-react"
 
 import { useBrowserVoices } from "@/hooks/use-browser-voices"
+import {
+  getBrowserSupportCopy,
+  getBrowserSupportTier,
+  type BrowserSupportTier,
+} from "@/lib/browser-support"
 import { cn } from "@/lib/utils"
 
-type SupportTier = "loading" | "unsupported" | "limited" | "ready"
-
-function getSupportTier(loading: boolean, voiceCount: number): SupportTier {
-  if (loading) return "loading"
-  if (voiceCount === 0) return "unsupported"
-  if (voiceCount < 5) return "limited"
-  return "ready"
-}
-
-function getCopy(
-  tier: Exclude<SupportTier, "loading">,
-  voiceCount: number
-): { title: string; body: string } {
-  if (tier === "unsupported") {
-    return {
-      title: "Your browser isn't supported.",
-      body: "We couldn't find any voices. You may want to try Chrome or Edge for the best support across multiple languages.",
-    }
-  }
-
-  if (tier === "limited") {
-    return {
-      title: "Partially supported.",
-      body: `Your browser only has ${voiceCount} voice${voiceCount === 1 ? "" : "s"}. You may want to try Chrome or Edge for the best experience.`,
-    }
-  }
-
-  return {
-    title: "Fully supported.",
-    body: `Your browser has ${voiceCount} voices. Plenty of voices are available to use in this browser.`,
-  }
-}
-
 const TIER_STYLES: Record<
-  Exclude<SupportTier, "loading">,
+  Exclude<BrowserSupportTier, "loading">,
   { shell: string; icon: string; Icon: typeof CircleCheckIcon }
 > = {
   ready: {
@@ -62,7 +34,7 @@ const TIER_STYLES: Record<
 
 export function BrowserSupportSection({ className }: { className?: string }) {
   const { voices, loading } = useBrowserVoices()
-  const tier = getSupportTier(loading, voices.length)
+  const tier = getBrowserSupportTier(loading, voices.length)
 
   return (
     <div
@@ -86,7 +58,7 @@ export function BrowserSupportSection({ className }: { className?: string }) {
       ) : (
         <StatusBanner
           tier={tier}
-          {...getCopy(tier, voices.length)}
+          {...getBrowserSupportCopy(tier, voices.length)}
         />
       )}
     </div>
@@ -98,7 +70,7 @@ function StatusBanner({
   title,
   body,
 }: {
-  tier: Exclude<SupportTier, "loading">
+  tier: Exclude<BrowserSupportTier, "loading">
   title: string
   body: string
 }) {

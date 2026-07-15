@@ -4,11 +4,13 @@
         "date": "2026-07-14",
         "items": [
             "Added chat commands so mods and chat can control the queue, playback, and voice assignments.",
+            "Added a fancy new landing page.",
             "Added a dedicated on/off toggle for the queue itself.",
             "Added setting to control scale of the live chat.",
             "Added full support for all Twitch badges, even channel-specific ones.",
             "Added ability to install Chatvoice as an app.",
             "Redesigned the UI to reduce the amount of dead space.",
+            "Redesigned the onboarding flow to look more like the app itself.",
             "Chat alerts like subscriptions, raids, and announcements have been redesigned.",
             "Playback controls are now always visible even with the queue collapsed.",
             "Increased the max number of messages displayed to 300, as well as added a setting to change it.",
