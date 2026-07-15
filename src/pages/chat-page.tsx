@@ -631,7 +631,7 @@ export function ChatPage() {
                   <Button
                     variant="default"
                     size="icon-lg"
-                    className="size-12 rounded-full shadow-sm"
+                    className="size-12 rounded-full border-2 border-transparent text-white shadow-[0_8px_32px_-8px_#6E11B0B3] [background:linear-gradient(#6E11B0,#2E074A)_padding-box,linear-gradient(#2E074A,#6E11B0)_border-box] transition-transform hover:scale-[1.02] hover:bg-transparent active:scale-[0.98]"
                     onClick={togglePlayback}
                     aria-label={
                       playbackEnabled ? "Pause speech" : "Resume speech"
