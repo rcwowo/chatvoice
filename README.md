@@ -1,6 +1,6 @@
 <div align="center">
 
-![Logo](public/social-banner.webp)
+![Logo](public/branding/social-banner.webp)
 # Chatvoice
 Let your chat have a voice! Read Twitch chat messages aloud using your browser's built-in speech synthesis capabilities.
 

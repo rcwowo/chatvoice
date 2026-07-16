@@ -16,6 +16,8 @@
 export type TwitchBadge = {
   set: string
   version: string
+  imageUrl?: string
+  title?: string
 }
 
 export type TwitchEmoteProvider = "twitch" | "bttv" | "ffz" | "7tv"
@@ -58,6 +60,7 @@ export type TwitchSystemMessage = {
   text: string
   headline: string
   details: string | null
+  emotes: TwitchEmote[]
   receivedAt: string
   event: "subscription" | "raid" | "announcement" | "connection" | "notice" | "status"
   level: "info" | "success" | "warning" | "error"
@@ -381,7 +384,10 @@ function parseUserNotice(raw: string): TwitchSystemMessage | null {
   const msgId = parsed.tags.get("msg-id") ?? ""
   const event = getUserNoticeEvent(msgId)
   const headline = systemText || getUserNoticeHeadline(msgId)
-  const details = trailingText.trim() || null
+  const details = trailingText.trim() ? trailingText : null
+  const emotes = details
+    ? parseEmotesTag(parsed.tags.get("emotes") ?? "", trailingText)
+    : []
 
   const text = [headline, details].filter(Boolean).join(" ").trim() ||
     "Channel event"
@@ -395,6 +401,7 @@ function parseUserNotice(raw: string): TwitchSystemMessage | null {
     text,
     headline,
     details,
+    emotes,
     receivedAt: parseTmiTimestamp(parsed.tags),
     event,
     level: event === "subscription" || event === "raid" ? "success" : "info",
@@ -423,6 +430,7 @@ function parseNotice(raw: string): TwitchSystemMessage | null {
     text,
     headline: text,
     details: null,
+    emotes: [],
     receivedAt: parseTmiTimestamp(parsed.tags),
     event: "notice",
     level: "warning",

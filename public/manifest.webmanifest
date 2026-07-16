@@ -1,0 +1,17 @@
+{
+    "name": "Chatvoice",
+    "short_name": "Chatvoice",
+    "description": "Let your chat have a voice! Read Twitch chat messages aloud using your browser's built-in speech synthesis.",
+    "start_url": "/app",
+    "display": "standalone",
+    "background_color": "#0C090C",
+    "theme_color": "#6E11B0",
+    "icons": [
+        {
+            "src": "/branding/appicon.png",
+            "sizes": "256x256",
+            "type": "image/png",
+            "purpose": "any"
+        }
+    ]
+}

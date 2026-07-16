@@ -24,6 +24,7 @@ import {
   sanitizeMessageText,
 } from "@/lib/chatvoice-config"
 import type { AppConfig } from "@/lib/chatvoice-config"
+import { tryHandleChatCommand, parseChatCommand } from "@/lib/chat-commands"
 import type { MemberBadge } from "@/lib/member-badges"
 import type {
   TwitchChatMessage,
@@ -75,6 +76,7 @@ export type ChatvoiceChatContextValue = {
   playbackQueue: PlaybackQueueItem[]
   setPlaybackQueue: React.Dispatch<React.SetStateAction<PlaybackQueueItem[]>>
   isPlayingQueue: boolean
+  activePlaybackItemId: string | null
   lastSpokenMessageId: string | null
   skipCurrent: () => void
   clearQueue: () => void
@@ -129,7 +131,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     startConnection: startChatConnection,
     stopConnection: stopChatConnection,
   } =
-    useTwitchChat()
+    useTwitchChat(config.playback.maxDisplayedMessages)
   const { voices, loading: voicesLoading } = useBrowserVoices()
   const { badgeByUserId: memberBadgeByUserId, ready: memberBadgesReady } =
     useMemberBadges()
@@ -141,6 +143,10 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   const [lastSpokenMessageId, setLastSpokenMessageId] = React.useState<
     string | null
   >(null)
+  /** Head-of-queue item currently speaking or soft-paused mid-utterance. */
+  const [activePlaybackItemId, setActivePlaybackItemId] = React.useState<
+    string | null
+  >(null)
 
   const queueCapacity = Math.max(config.playback.maxQueueSize, 1)
 
@@ -148,6 +154,13 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   const playbackQueueRef = React.useRef(playbackQueue)
   const playbackEnabledRef = React.useRef(config.playback.enabled)
   const lastSpokenMessageIdRef = React.useRef(lastSpokenMessageId)
+  const isPlayingQueueRef = React.useRef(isPlayingQueue)
+  /** Char offset into the current item's full text (soft-pause resume point). */
+  const speakOffsetRef = React.useRef(0)
+  /** Progress within the active utterance text (from boundary events). */
+  const utteranceCharIndexRef = React.useRef(0)
+  /** True while cancel() is used to soft-pause rather than skip/clear. */
+  const softPausingRef = React.useRef(false)
 
   React.useEffect(() => {
     playbackQueueRef.current = playbackQueue
@@ -155,6 +168,30 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     playbackEnabledRef.current = config.playback.enabled
+  }, [config.playback.enabled])
+
+  React.useEffect(() => {
+    isPlayingQueueRef.current = isPlayingQueue
+  }, [isPlayingQueue])
+
+  // Soft-pause: remote/online voices (Edge neural, Chrome cloud, etc.) often
+  // break natively on pause()/resume() with no error. Cancel and resume from
+  // the last boundary instead.
+  React.useEffect(() => {
+    if (config.playback.enabled) {
+      return
+    }
+
+    const synth = window.speechSynthesis
+    if (!synth || !isPlayingQueueRef.current) {
+      return
+    }
+
+    softPausingRef.current = true
+    speakOffsetRef.current += utteranceCharIndexRef.current
+    utteranceCharIndexRef.current = 0
+    synth.cancel()
+    setIsPlayingQueue(false)
   }, [config.playback.enabled])
 
   React.useEffect(() => {
@@ -171,6 +208,67 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   // -----------------------------------------------------------------------
 
   const autoConnectedRef = React.useRef(false)
+
+  // -----------------------------------------------------------------------
+  // Queue controls
+  // -----------------------------------------------------------------------
+
+  const skipCurrent = React.useCallback(() => {
+    softPausingRef.current = false
+    speakOffsetRef.current = 0
+    utteranceCharIndexRef.current = 0
+    setActivePlaybackItemId(null)
+    window.speechSynthesis?.cancel()
+    setPlaybackQueue((current) => current.slice(1))
+    setIsPlayingQueue(false)
+  }, [])
+
+  const clearQueue = React.useCallback(() => {
+    softPausingRef.current = false
+    speakOffsetRef.current = 0
+    utteranceCharIndexRef.current = 0
+    setActivePlaybackItemId(null)
+    window.speechSynthesis?.cancel()
+    setPlaybackQueue([])
+    setIsPlayingQueue(false)
+  }, [])
+
+  const setQueueEnabled = React.useCallback(
+    (enabled: boolean) => {
+      updateConfig((current) => ({
+        ...current,
+        playback: { ...current.playback, queueEnabled: enabled },
+      }))
+    },
+    [updateConfig]
+  )
+
+  const setPlaybackEnabled = React.useCallback(
+    (enabled: boolean) => {
+      updateConfig((current) => ({
+        ...current,
+        playback: { ...current.playback, enabled },
+      }))
+    },
+    [updateConfig]
+  )
+
+  const chatCommandActions = React.useMemo(
+    () => ({
+      setQueueEnabled,
+      setPlaybackEnabled,
+      skipCurrent,
+      clearQueue,
+      voiceProfiles: config.voiceProfiles,
+    }),
+    [
+      setQueueEnabled,
+      setPlaybackEnabled,
+      skipCurrent,
+      clearQueue,
+      config.voiceProfiles,
+    ]
+  )
 
   // -----------------------------------------------------------------------
   // Enqueue new chat messages as they arrive
@@ -204,6 +302,13 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false
 
     async function processMessages() {
+      // Evaluate commands for every new message so !cv actions still run in
+      // big-chat mode even when older pending messages are not spoken.
+      for (const message of pendingMessages) {
+        if (cancelled) break
+        await tryHandleChatCommand(message, config, chatCommandActions)
+      }
+
       // In big-chat mode, only process the newest pending message so we
       // don't waste work on messages we'll never speak.
       const messagesToProcess = isBigChat
@@ -214,6 +319,11 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
 
       for (const message of messagesToProcess) {
         if (cancelled) break
+
+        // Known Chatvoice command syntax is never spoken.
+        if (parseChatCommand(message.text)) {
+          continue
+        }
 
         const decision = shouldSpeakMessage(message, config)
         if (!decision.allowed) {
@@ -287,6 +397,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     messages,
     ready,
     queueCapacity,
+    chatCommandActions,
   ])
 
   // -----------------------------------------------------------------------
@@ -313,12 +424,27 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     if (!synth) {
       toast.error("SpeechSynthesis is not available in this browser.")
       setPlaybackQueue((current) => current.slice(1))
+      speakOffsetRef.current = 0
+      utteranceCharIndexRef.current = 0
+      setActivePlaybackItemId(null)
       return
     }
 
-    setIsPlayingQueue(true)
+    const remainingText = item.text.slice(speakOffsetRef.current)
+    if (!remainingText.trim()) {
+      speakOffsetRef.current = 0
+      utteranceCharIndexRef.current = 0
+      setActivePlaybackItemId(null)
+      setPlaybackQueue((current) => current.slice(1))
+      return
+    }
 
-    const utterance = new SpeechSynthesisUtterance(item.text)
+    softPausingRef.current = false
+    utteranceCharIndexRef.current = 0
+    setIsPlayingQueue(true)
+    setActivePlaybackItemId(item.id)
+
+    const utterance = new SpeechSynthesisUtterance(remainingText)
 
     const synthVoice = findSynthVoice(item.profile.voice)
     if (synthVoice) {
@@ -329,47 +455,59 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     utterance.pitch = configPitchToSpeechPitch(item.profile.pitch)
     utterance.volume = configVolumeToSpeechVolume(item.profile.volume)
 
+    utterance.onboundary = (event) => {
+      if (typeof event.charIndex === "number" && event.charIndex >= 0) {
+        utteranceCharIndexRef.current = event.charIndex
+      }
+    }
+
     utterance.onend = () => {
+      if (softPausingRef.current) {
+        softPausingRef.current = false
+        return
+      }
+
+      speakOffsetRef.current = 0
+      utteranceCharIndexRef.current = 0
+      setActivePlaybackItemId(null)
       setPlaybackQueue((current) => current.slice(1))
       setIsPlayingQueue(false)
     }
 
     utterance.onerror = (event) => {
-      // "canceled" (Safari) and "interrupted" (Chrome/Edge) are fired when
-      // speechSynthesis.cancel() is called from skipCurrent / clearQueue.
-      // Those callers already handle queue removal, so bail out here to
-      // avoid removing an extra item (double-skip bug).
+      // Soft-pause, skip, and clear all call cancel(). Soft-pause keeps the
+      // queue item; skip/clear already removed it and reset state.
       if (event.error === "canceled" || event.error === "interrupted") {
+        if (softPausingRef.current) {
+          softPausingRef.current = false
+        }
         return
       }
       toast.error(`Speech failed: ${event.error}`)
+      speakOffsetRef.current = 0
+      utteranceCharIndexRef.current = 0
+      setActivePlaybackItemId(null)
       setPlaybackQueue((current) => current.slice(1))
       setIsPlayingQueue(false)
     }
 
     synth.speak(utterance)
-  }, [isPlayingQueue, queueLength])
+    // Include `enabled` so re-enabling playback kicks the consumer when the
+    // queue already has items and nothing is currently speaking.
+  }, [isPlayingQueue, queueLength, config.playback.enabled])
 
   // -----------------------------------------------------------------------
-  // Queue controls
+  // Connection helpers
   // -----------------------------------------------------------------------
-
-  const skipCurrent = React.useCallback(() => {
-    window.speechSynthesis?.cancel()
-    setPlaybackQueue((current) => current.slice(1))
-    setIsPlayingQueue(false)
-  }, [])
-
-  const clearQueue = React.useCallback(() => {
-    window.speechSynthesis?.cancel()
-    setPlaybackQueue([])
-    setIsPlayingQueue(false)
-  }, [])
 
   const clearChatPlaybackQueue = React.useCallback(() => {
     const currentItem = playbackQueueRef.current[0]
 
     if (currentItem?.source === "chat") {
+      softPausingRef.current = false
+      speakOffsetRef.current = 0
+      utteranceCharIndexRef.current = 0
+      setActivePlaybackItemId(null)
       window.speechSynthesis?.cancel()
       setIsPlayingQueue(false)
     }
@@ -472,6 +610,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       playbackQueue,
       setPlaybackQueue,
       isPlayingQueue,
+      activePlaybackItemId,
       lastSpokenMessageId,
       skipCurrent,
       clearQueue,
@@ -485,6 +624,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
       stopConnection,
       playbackQueue,
       isPlayingQueue,
+      activePlaybackItemId,
       lastSpokenMessageId,
       skipCurrent,
       clearQueue,
@@ -531,7 +671,7 @@ export function shouldSpeakMessage(
     item.toLowerCase()
   )
 
-  if (!config.playback.enabled) {
+  if (!config.playback.queueEnabled) {
     return { allowed: false, text: sanitized }
   }
 

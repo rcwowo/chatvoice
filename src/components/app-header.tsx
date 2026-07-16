@@ -1,6 +1,6 @@
 import { SettingsIcon } from "lucide-react"
 
-import logoSrc from "/logo.png"
+import logoSrc from "/branding/logo.png"
 import { ChannelSwitcher } from "@/components/channel-switcher"
 import { Button } from "@/components/ui/button"
 import {

@@ -1,22 +1,15 @@
 import * as React from "react"
 import {
-  BadgeCheck,
   Crown,
-  Gem,
   Gift,
   ListOrdered,
   Megaphone,
   MessagesSquareIcon,
-  Palette,
   PauseIcon,
   PlayIcon,
   SkipForwardIcon,
-  Star,
-  Swords,
   Trash2Icon,
-  Video,
   Volume2,
-  Wrench,
 } from "lucide-react"
 
 import type { MessageTimestampFormat } from "@/lib/chatvoice-config"
@@ -44,23 +37,8 @@ import { ChatQueueSplit } from "@/components/chat-queue-split"
 import { EmptyState } from "@/components/dashboard-primitives"
 
 // ---------------------------------------------------------------------------
-// Badge rendering (role badges only)
+// Badge rendering
 // ---------------------------------------------------------------------------
-
-const ROLE_BADGES: Record<
-  string,
-  { label: string; bg: string; icon: React.ComponentType<{ className?: string }> }
-> = {
-  "staff": { label: "Staff", bg: "#000000", icon: Wrench },
-  "partner": { label: "Partner", bg: "#a96dff", icon: BadgeCheck },
-  "premium": { label: "Prime", bg: "#0096d6", icon: Crown },
-  "broadcaster": { label: "Broadcaster", bg: "#E91916", icon: Video },
-  "moderator": { label: "Moderator", bg: "#00AD03", icon: Swords },
-  "vip": { label: "VIP", bg: "#A10886", icon: Gem },
-  "founder": { label: "Founder", bg: "#b638ef", icon: Crown },
-  "artist-badge": { label: "Artist", bg: "#1e69ff", icon: Palette },
-  "subscriber": { label: "Subscriber", bg: "#8204B5", icon: Star },
-}
 
 function HoverTooltip({
   label,
@@ -84,31 +62,30 @@ function ChatBadges({
   badges: TwitchBadge[]
   memberBadge?: MemberBadge | null
 }) {
-  const knownBadges = badges.filter((badge) => ROLE_BADGES[badge.set])
-  if (knownBadges.length === 0 && !memberBadge) return null
+  const resolvedBadges = badges.filter((badge) => badge.imageUrl)
+  if (resolvedBadges.length === 0 && !memberBadge) return null
 
   return (
     <span className="mr-1 inline-flex items-center gap-0.5 align-middle">
-      {knownBadges.map((badge, i) => {
-        const role = ROLE_BADGES[badge.set]!
-        const Icon = role.icon
-        return (
-          <HoverTooltip key={`${badge.set}-${i}`} label={role.label}>
-            <span
-              className="inline-flex size-4 items-center justify-center rounded align-middle"
-              style={{ backgroundColor: role.bg }}
-            >
-              <Icon className="size-3 text-white" />
-            </span>
-          </HoverTooltip>
-        )
-      })}
+      {resolvedBadges.map((badge, i) => (
+        <HoverTooltip
+          key={`${badge.set}-${badge.version}-${i}`}
+          label={badge.title ?? badge.set}
+        >
+          <img
+            src={badge.imageUrl}
+            alt={badge.title ?? badge.set}
+            className="inline-block size-[1.14em] align-middle"
+            loading="lazy"
+          />
+        </HoverTooltip>
+      ))}
       {memberBadge ? (
         <HoverTooltip label={memberBadge.name}>
           <img
             src={memberBadge.image}
             alt={memberBadge.name}
-            className="inline-block size-4 rounded align-middle"
+            className="inline-block size-[1.14em] rounded align-middle"
           />
         </HoverTooltip>
       ) : null}
@@ -195,7 +172,7 @@ function MessageText({ text, emotes }: { text: string; emotes: TwitchEmote[] }) 
         <img
           src={emote.imageUrl}
           alt={emoteName}
-          className="inline-block h-5 align-middle"
+          className="inline-block h-[1.43em] align-middle"
           loading="lazy"
         />
       </HoverTooltip>
@@ -215,75 +192,45 @@ const SYSTEM_EVENT_META: Record<
   {
     label: string
     icon: React.ComponentType<{ className?: string }>
-    chipClassName: string
-    cardClassName: string
-    iconWrapClassName: string
-    headlineClassName: string
-    detailsClassName: string
+    barClassName: string
+    accentClassName: string
   }
 > = {
   subscription: {
     label: "Subscription",
     icon: Gift,
-    chipClassName:
-      "border-amber-500/30 bg-amber-500/12 text-amber-700 dark:text-amber-300",
-    cardClassName:
-      "border-amber-500/25 bg-linear-to-r from-amber-500/12 via-amber-500/6 to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]",
-    iconWrapClassName:
-      "bg-amber-500 text-white shadow-[0_10px_25px_-15px_rgba(245,158,11,0.85)]",
-    headlineClassName: "text-foreground",
-    detailsClassName: "text-foreground/75",
+    barClassName: "bg-purple-500/10",
+    accentClassName: "border-purple-500",
   },
   raid: {
     label: "Raid",
     icon: Crown,
-    chipClassName:
-      "border-rose-500/30 bg-rose-500/12 text-rose-700 dark:text-rose-300",
-    cardClassName:
-      "border-rose-500/25 bg-linear-to-r from-rose-500/12 via-rose-500/6 to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]",
-    iconWrapClassName:
-      "bg-rose-500 text-white shadow-[0_10px_25px_-15px_rgba(244,63,94,0.85)]",
-    headlineClassName: "text-foreground",
-    detailsClassName: "text-foreground/78",
+    barClassName: "bg-rose-500/10",
+    accentClassName: "border-rose-500",
   },
   announcement: {
     label: "Announcement",
     icon: Megaphone,
-    chipClassName:
-      "border-sky-500/30 bg-sky-500/12 text-sky-700 dark:text-sky-300",
-    cardClassName:
-      "border-sky-500/25 bg-linear-to-r from-sky-500/12 via-sky-500/6 to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]",
-    iconWrapClassName:
-      "bg-sky-500 text-white shadow-[0_10px_25px_-15px_rgba(14,165,233,0.85)]",
-    headlineClassName: "text-foreground",
-    detailsClassName: "text-foreground/85",
+    barClassName: "bg-sky-500/10",
+    accentClassName: "border-sky-500",
   },
   connection: {
     label: "Connection",
     icon: Gift,
-    chipClassName: "",
-    cardClassName: "",
-    iconWrapClassName: "",
-    headlineClassName: "text-muted-foreground",
-    detailsClassName: "text-muted-foreground",
+    barClassName: "",
+    accentClassName: "",
   },
   notice: {
     label: "Notice",
     icon: Gift,
-    chipClassName: "",
-    cardClassName: "",
-    iconWrapClassName: "",
-    headlineClassName: "text-muted-foreground",
-    detailsClassName: "text-muted-foreground",
+    barClassName: "",
+    accentClassName: "",
   },
   status: {
     label: "Status",
     icon: Gift,
-    chipClassName: "",
-    cardClassName: "",
-    iconWrapClassName: "",
-    headlineClassName: "text-muted-foreground",
-    detailsClassName: "text-muted-foreground",
+    barClassName: "",
+    accentClassName: "",
   },
 }
 
@@ -303,75 +250,59 @@ function SystemMessageRow({
   const timestamp = formatMessageTimestamp(message.receivedAt, timestampFormat)
   const normalizedHeadline = message.headline.trim().toLowerCase()
   const normalizedLabel = meta.label.trim().toLowerCase()
-  const showHeadline = Boolean(message.headline.trim()) && normalizedHeadline !== normalizedLabel
+  const showHeadline =
+    Boolean(message.headline.trim()) && normalizedHeadline !== normalizedLabel
 
   if (!spotlight) {
     return (
       <div className="group flex gap-1.5 px-1 py-0.5 leading-snug hover:bg-muted/40">
         {timestamp ? (
-          <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
+          <span className="shrink-0 text-[0.786em] leading-snug text-muted-foreground/50 select-none">
             {timestamp}
           </span>
         ) : null}
-        <span className="text-sm italic text-muted-foreground">
+        <span className="italic text-muted-foreground">
           {message.text}
         </span>
       </div>
     )
   }
 
-  const cardStyle = message.accentColor
+  const accentStyle = message.accentColor
     ? {
-        borderColor: `${message.accentColor}55`,
-        backgroundImage: `linear-gradient(120deg, ${message.accentColor}22, transparent 72%)`,
+        borderLeftColor: message.accentColor,
+        backgroundColor: `${message.accentColor}1a`,
       }
     : undefined
 
   return (
-    <div className="group flex gap-1.5 px-1 py-1 leading-snug">
+    <div
+      className={`group flex gap-1.5 border-l-[3px] px-1 py-1.5 leading-snug ${meta.barClassName} ${meta.accentClassName}`}
+      style={accentStyle}
+    >
       {timestamp ? (
-        <span className="shrink-0 pt-1 text-[11px] leading-snug text-muted-foreground/50 select-none">
+        <span className="shrink-0 text-[0.786em] leading-snug text-muted-foreground/50 select-none">
           {timestamp}
         </span>
       ) : null}
 
-      <div
-        className={`min-w-0 flex-1 rounded-xl border px-3 py-2 ${meta.cardClassName}`}
-        style={cardStyle}
-      >
-        <div className="flex items-start gap-2.5">
-          <span
-            className={`mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full ${meta.iconWrapClassName}`}
-          >
-            <Icon className="size-3.5" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <Icon className="size-[1em] shrink-0 text-foreground" />
+          <span className="font-semibold text-foreground">
+            {meta.label}
           </span>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[0.18em] uppercase ${meta.chipClassName}`}
-              >
-                {meta.label}
-              </span>
-            </div>
-
-            {showHeadline ? (
-              <p className={`mt-1 text-sm font-medium ${meta.headlineClassName}`}>
-                {message.headline}
-              </p>
-            ) : null}
-
-            {message.details ? (
-              <p
-                className={`text-sm leading-relaxed ${meta.detailsClassName} ${
-                  showHeadline ? "mt-1" : "mt-0.5"
-                }`}
-              >
-                {message.details}
-              </p>
-            ) : null}
-          </div>
         </div>
+
+        {showHeadline ? (
+          <p className="mt-0.5 text-foreground/85">{message.headline}</p>
+        ) : null}
+
+        {message.details ? (
+          <p className="mt-0.5 text-foreground/85">
+            <MessageText text={message.details} emotes={message.emotes} />
+          </p>
+        ) : null}
       </div>
     </div>
   )
@@ -381,10 +312,9 @@ export function ChatPage() {
   const {
     config,
     updateConfig,
-    connectionState,
     timeline,
     playbackQueue,
-    isPlayingQueue,
+    activePlaybackItemId,
     skipCurrent,
     clearQueue,
     memberBadgeByUserId,
@@ -395,9 +325,11 @@ export function ChatPage() {
   const messageListRef = React.useRef<HTMLDivElement>(null)
   const isProgrammaticScrollRef = React.useRef(false)
   const [isScrollPaused, setIsScrollPaused] = React.useState(false)
-  const currentlyPlayingId = isPlayingQueue ? playbackQueue[0]?.id : null
+  const currentlyPlayingId = activePlaybackItemId
   const playbackEnabled = config.playback.enabled
+  const queueEnabled = config.playback.queueEnabled
   const timestampFormat = config.playback.messageTimestampFormat
+  const chatScale = config.playback.chatScale
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "auto") => {
     const el = chatContainerRef.current
@@ -452,185 +384,229 @@ export function ChatPage() {
     }))
   }, [updateConfig])
 
+  const setQueueEnabled = React.useCallback(
+    (enabled: boolean) => {
+      updateConfig((current) => ({
+        ...current,
+        playback: { ...current.playback, queueEnabled: enabled },
+      }))
+    },
+    [updateConfig]
+  )
+
+  const queueEmptyDescription = !queueEnabled
+    ? "Queueing is off. New messages won't be added."
+    : playbackEnabled
+      ? "New messages will be queued for speech."
+      : "Speech is paused. Press play to resume."
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-    <ChatQueueSplit
-      chat={
-      <div className="flex h-full min-h-0 min-w-0 flex-col">
-        <h2 className="mb-1 h-5 shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Chat
-          {connectionState.connected && connectionState.channel ? (
-            <span className="ml-1.5 font-normal text-muted-foreground/70 normal-case">
-              #{connectionState.channel}
-            </span>
-          ) : null}
-        </h2>
-        <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-border">
-          {timeline.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <EmptyState
-                icon={MessagesSquareIcon}
-                title="No messages yet"
-                description="Once connected, chat messages will appear here."
-              />
-            </div>
-          ) : (
-            <div
-              ref={chatContainerRef}
-              onScroll={handleChatScroll}
-              className="flex h-full flex-col overflow-y-auto overscroll-contain"
-            >
-              <div ref={messageListRef} className="mt-auto px-3 py-2">
-                {timeline.map((entry) => {
-                  if (entry.kind === "system") {
-                    return (
-                      <SystemMessageRow
-                        key={entry.message.id}
-                        message={entry.message}
-                        timestampFormat={timestampFormat}
-                      />
-                    )
-                  }
-
-                  const message = entry.message
-                  const isPlaying = message.id === currentlyPlayingId
-                  const timestamp = formatMessageTimestamp(
-                    message.receivedAt,
-                    timestampFormat
-                  )
-                  return (
-                    <div
-                      key={message.id}
-                      className={`group flex gap-1.5 px-1 py-0.5 leading-snug ${
-                        isPlaying
-                          ? "rounded bg-primary/10"
-                          : "hover:bg-muted/40"
-                      }`}
-                    >
-                      {timestamp ? (
-                        <span className="shrink-0 text-[11px] leading-snug text-muted-foreground/50 select-none">
-                          {timestamp}
-                        </span>
-                      ) : null}
-
-                      <span className="min-w-0 flex-1 text-sm">
-                        <ChatBadges
-                          badges={message.badges}
-                          memberBadge={
-                            message.userId
-                              ? memberBadgeByUserId.get(message.userId)
-                              : null
-                          }
-                        />
-                        <span
-                          className="font-semibold"
-                          style={
-                            message.color ? { color: message.color } : undefined
-                          }
-                        >
-                          {message.displayName}
-                        </span>
-                        <span className="text-muted-foreground">: </span>
-                        <MessageText text={message.text} emotes={message.emotes} />
-                        {isPlaying ? (
-                          <Badge
-                            variant="default"
-                            className="ml-1.5 inline-flex h-4 px-1 align-middle text-[10px] leading-none"
-                          >
-                            <Volume2 />
-                          </Badge>
-                        ) : null}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {timeline.length > 0 && isScrollPaused ? (
-            <div className="pointer-events-none absolute right-0 bottom-3 left-0 z-10 flex justify-center px-3">
-              <Button
-                type="button"
-                size="sm"
-                className="pointer-events-auto shadow-md"
-                onClick={() => {
-                  setIsScrollPaused(false)
-                  scrollToBottom("smooth")
-                }}
-              >
-                Scrolling Paused
-              </Button>
-            </div>
-          ) : null}
-        </div>
-      </div>
-      }
-      queue={
-      <div className="flex h-full min-h-0 min-w-0 flex-col">
-        <h2 className="mb-1 h-5 shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Queue
-          {playbackQueue.length > 0 ? (
-            <span className="ml-1 font-normal text-muted-foreground/70 normal-case">
-              ({playbackQueue.length})
-            </span>
-          ) : null}
-        </h2>
-
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
-          {playbackQueue.length === 0 ? (
-            <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-border">
-            <EmptyState
-              icon={ListOrdered}
-              title="Queue is empty"
-              description={
-                playbackEnabled
-                  ? "New messages will be queued for speech."
-                  : "Speech is paused. Press play to resume."
-              }
-            />
-          </div>
-        ) : (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border">
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3">
-              <div className="w-full max-w-full min-w-0 space-y-2">
-                {playbackQueue.map((item, index) => (
+      <ChatQueueSplit
+        chat={
+          <div className="flex h-full min-h-0 min-w-0 flex-col">
+            <h2 className="shrink-0 px-4 pt-3 pb-2 text-sm font-medium text-muted-foreground">
+              Live Chat
+            </h2>
+            <div className="relative min-h-0 flex-1 overflow-hidden">
+              {timeline.length === 0 ? (
+                <div className="flex h-full items-center justify-center px-4">
+                  <EmptyState
+                    icon={MessagesSquareIcon}
+                    title="No messages yet"
+                    description="Once connected, chat messages will appear here."
+                  />
+                </div>
+              ) : (
+                <div
+                  ref={chatContainerRef}
+                  onScroll={handleChatScroll}
+                  className="flex h-full flex-col overflow-y-auto overscroll-contain"
+                >
                   <div
-                    key={item.id}
-                    className={
-                      index === 0 && isPlayingQueue
-                        ? "@container/queue-item w-full max-w-full min-w-0 overflow-hidden rounded-xl border-2 border-primary bg-primary/5 p-3"
-                        : "@container/queue-item w-full max-w-full min-w-0 overflow-hidden rounded-xl border border-border bg-background p-3"
-                    }
+                    ref={messageListRef}
+                    className="mt-auto px-4 py-2"
+                    style={{
+                      fontSize: `calc(0.875rem * ${chatScale / 100})`,
+                    }}
                   >
-                    <div className="flex min-w-0 flex-col gap-1.5 @min-[14rem]/queue-item:flex-row @min-[14rem]/queue-item:items-center @min-[14rem]/queue-item:gap-2">
-                      <p
-                        className="min-w-0 truncate font-medium text-sm @min-[14rem]/queue-item:flex-1"
-                        title={item.assignment.displayName}
-                      >
-                        {item.assignment.displayName}
-                      </p>
-                      <Badge
-                        variant="outline"
-                        className="w-fit max-w-full shrink-0 self-start truncate @min-[14rem]/queue-item:max-w-[11rem]"
-                        title={item.profile.label}
-                      >
-                        {item.profile.label}
-                      </Badge>
-                    </div>
-                    <p className="mt-2 break-words text-sm text-muted-foreground @min-[14rem]/queue-item:mt-1.5">
-                      {item.text}
-                    </p>
+                    {timeline.map((entry) => {
+                      if (entry.kind === "system") {
+                        return (
+                          <SystemMessageRow
+                            key={entry.message.id}
+                            message={entry.message}
+                            timestampFormat={timestampFormat}
+                          />
+                        )
+                      }
+
+                      const message = entry.message
+                      const isPlaying = message.id === currentlyPlayingId
+                      const timestamp = formatMessageTimestamp(
+                        message.receivedAt,
+                        timestampFormat
+                      )
+                      return (
+                        <div
+                          key={message.id}
+                          className={`group flex gap-1.5 px-1 py-0.5 leading-snug ${
+                            isPlaying
+                              ? "rounded bg-primary/10"
+                              : "hover:bg-muted/40"
+                          }`}
+                        >
+                          {timestamp ? (
+                            <span className="shrink-0 text-[0.786em] leading-snug text-muted-foreground/50 select-none">
+                              {timestamp}
+                            </span>
+                          ) : null}
+
+                          <span className="min-w-0 flex-1">
+                            <ChatBadges
+                              badges={message.badges}
+                              memberBadge={
+                                message.userId
+                                  ? memberBadgeByUserId.get(message.userId)
+                                  : null
+                              }
+                            />
+                            <span
+                              className="font-semibold"
+                              style={
+                                message.color
+                                  ? { color: message.color }
+                                  : undefined
+                              }
+                            >
+                              {message.displayName}
+                            </span>
+                            <span className="text-muted-foreground">: </span>
+                            <MessageText
+                              text={message.text}
+                              emotes={message.emotes}
+                            />
+                            {isPlaying ? (
+                              <Badge
+                                variant="default"
+                                className="ml-1.5 inline-flex h-[1.14em] px-[0.286em] align-middle text-[0.714em] leading-none"
+                              >
+                                <Volume2 />
+                              </Badge>
+                            ) : null}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {timeline.length > 0 && isScrollPaused ? (
+                <div className="pointer-events-none absolute right-0 bottom-3 left-0 z-10 flex justify-center px-4">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="pointer-events-auto shadow-md"
+                    onClick={() => {
+                      setIsScrollPaused(false)
+                      scrollToBottom("smooth")
+                    }}
+                  >
+                    Scrolling Paused
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </div>
-        )}
+        }
+        queue={
+          <div className="flex h-full min-h-0 min-w-0 flex-col">
+            <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-2">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                Queue ({playbackQueue.length})
+              </h2>
+              <div
+                role="group"
+                aria-label="Queue messages"
+                className="inline-flex items-center rounded-full border border-border bg-background p-0.5"
+              >
+                <button
+                  type="button"
+                  onClick={() => setQueueEnabled(true)}
+                  aria-pressed={queueEnabled}
+                  className={
+                    queueEnabled
+                      ? "rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground transition-colors"
+                      : "rounded-full px-2.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  }
+                >
+                  On
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQueueEnabled(false)}
+                  aria-pressed={!queueEnabled}
+                  className={
+                    !queueEnabled
+                      ? "rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground transition-colors"
+                      : "rounded-full px-2.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  }
+                >
+                  Off
+                </button>
+              </div>
+            </div>
 
+            {playbackQueue.length === 0 ? (
+              <div className="flex min-h-0 flex-1 items-center justify-center px-4">
+                <EmptyState
+                  icon={ListOrdered}
+                  title="Queue is empty"
+                  description={queueEmptyDescription}
+                />
+              </div>
+            ) : (
+              <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-2">
+                <div className="w-full max-w-full min-w-0 space-y-2">
+                  {playbackQueue.map((item) => (
+                    <div
+                      key={item.id}
+                      className={
+                        item.id === activePlaybackItemId
+                          ? "w-full max-w-full min-w-0 overflow-hidden rounded-lg border-2 border-primary bg-muted/60 p-3"
+                          : "w-full max-w-full min-w-0 overflow-hidden rounded-lg bg-muted/40 p-3"
+                      }
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p
+                          className="min-w-0 flex-1 truncate font-medium text-sm"
+                          title={item.assignment.displayName}
+                        >
+                          {item.assignment.displayName}
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className="h-4 max-w-[11rem] shrink-0 truncate px-1.5 text-[10px] leading-none"
+                          title={item.profile.label}
+                        >
+                          {item.profile.label}
+                        </Badge>
+                      </div>
+                      <p className="mt-1.5 break-words text-[11px] leading-snug text-muted-foreground/50">
+                        {item.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        }
+        playback={
           <TooltipProvider>
             <div
-              className="flex shrink-0 items-center justify-center gap-5"
+              className="flex shrink-0 items-center justify-center gap-5 px-4 py-4"
               role="toolbar"
               aria-label="Speech playback controls"
             >
@@ -655,7 +631,7 @@ export function ChatPage() {
                   <Button
                     variant="default"
                     size="icon-lg"
-                    className="size-12 rounded-full shadow-sm"
+                    className="size-12 rounded-full border-2 border-transparent text-white shadow-[0_8px_32px_-8px_#6E11B0B3] [background:linear-gradient(#6E11B0,#2E074A)_padding-box,linear-gradient(#2E074A,#6E11B0)_border-box] transition-transform hover:scale-[1.02] hover:bg-transparent active:scale-[0.98]"
                     onClick={togglePlayback}
                     aria-label={
                       playbackEnabled ? "Pause speech" : "Resume speech"
@@ -690,10 +666,8 @@ export function ChatPage() {
               </Tooltip>
             </div>
           </TooltipProvider>
-        </div>
-      </div>
-      }
-    />
+        }
+      />
     </div>
   )
 }
