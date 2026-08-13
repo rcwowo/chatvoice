@@ -119,8 +119,7 @@ export function VoicesTab() {
                 ...current,
                 playback: {
                   ...current.playback,
-                  defaultVoiceProfileId:
-                    value === "__random__" ? "" : value,
+                  defaultVoiceProfileId: value === "__random__" ? "" : value,
                 },
               }))
             }
@@ -129,9 +128,7 @@ export function VoicesTab() {
               <SelectValue placeholder="Random (from enabled)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__random__">
-                Random (from enabled)
-              </SelectItem>
+              <SelectItem value="__random__">Random (from enabled)</SelectItem>
               {config.voiceProfiles.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.label}
@@ -202,7 +199,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-28 lg:min-w-28 lg:w-full text-sm"
+                      className="h-7 w-28 text-sm lg:w-full lg:min-w-28"
                     />
                   </TableCell>
                   <TableCell>
@@ -232,7 +229,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-16 xl:min-w-16 xl:w-full text-center text-sm"
+                      className="h-7 w-16 text-center text-sm xl:w-full xl:min-w-16"
                     />
                   </TableCell>
                   <TableCell>
@@ -248,7 +245,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-16 xl:min-w-16 xl:w-full text-center text-sm"
+                      className="h-7 w-16 text-center text-sm xl:w-full xl:min-w-16"
                     />
                   </TableCell>
                   <TableCell>
@@ -264,7 +261,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-16 xl:min-w-16 xl:w-full text-center text-sm"
+                      className="h-7 w-16 text-center text-sm xl:w-full xl:min-w-16"
                     />
                   </TableCell>
                   <TableCell className="text-center">
@@ -390,8 +387,13 @@ function VoiceSelect({
     : undefined
 
   return (
-    <Select value={value} onValueChange={onValueChange} open={open} onOpenChange={setOpen}>
-      <SelectTrigger className="h-7 w-40 xl:min-w-40 xl:w-full text-sm">
+    <Select
+      value={value}
+      onValueChange={onValueChange}
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <SelectTrigger className="h-7 w-40 text-sm xl:w-full xl:min-w-40">
         <SelectValue
           placeholder={voicesLoading ? "Loading..." : "Select voice"}
         >

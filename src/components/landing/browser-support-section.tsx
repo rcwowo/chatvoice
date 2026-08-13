@@ -40,7 +40,7 @@ export function BrowserSupportSection({ className }: { className?: string }) {
     <div
       className={cn(
         "w-full max-w-2xl",
-        "animate-in fade-in slide-in-from-bottom-3 duration-700 delay-300 fill-mode-both",
+        "animate-in delay-300 duration-700 fill-mode-both fade-in slide-in-from-bottom-3",
         className
       )}
       role="status"

@@ -44,7 +44,6 @@ export type PlaybackQueueItem = {
   source: "chat" | "preview"
 }
 
-
 // ---------------------------------------------------------------------------
 // Config context – changes only on user edits (stable during chat activity)
 // ---------------------------------------------------------------------------
@@ -122,7 +121,14 @@ export function useChatvoice() {
 // ---------------------------------------------------------------------------
 
 export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
-  const { config, ready, needsOnboarding, completeOnboarding, updateConfig, restoreBackup } = useChatvoiceConfig()
+  const {
+    config,
+    ready,
+    needsOnboarding,
+    completeOnboarding,
+    updateConfig,
+    restoreBackup,
+  } = useChatvoiceConfig()
   const {
     connectionState,
     messages,
@@ -130,8 +136,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     logs,
     startConnection: startChatConnection,
     stopConnection: stopChatConnection,
-  } =
-    useTwitchChat(config.playback.maxDisplayedMessages)
+  } = useTwitchChat(config.playback.maxDisplayedMessages)
   const { voices, loading: voicesLoading } = useBrowserVoices()
   const { badgeByUserId: memberBadgeByUserId, ready: memberBadgesReady } =
     useMemberBadges()
@@ -283,7 +288,9 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     // Find new messages that come after the last one we processed.
     let startIdx = 0
     if (lastSpokenMessageIdRef.current) {
-      const idx = messages.findIndex((m) => m.id === lastSpokenMessageIdRef.current)
+      const idx = messages.findIndex(
+        (m) => m.id === lastSpokenMessageIdRef.current
+      )
       startIdx = idx === -1 ? messages.length : idx + 1
     }
 
@@ -294,7 +301,8 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
 
     // Mark all as "seen" immediately via ref so we don't re-process,
     // without causing a re-render that would cancel the async work below.
-    const newLastId = messages[messages.length - 1]?.id ?? lastSpokenMessageIdRef.current
+    const newLastId =
+      messages[messages.length - 1]?.id ?? lastSpokenMessageIdRef.current
     lastSpokenMessageIdRef.current = newLastId
     setLastSpokenMessageId(newLastId)
 
@@ -392,13 +400,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [
-    config,
-    messages,
-    ready,
-    queueCapacity,
-    chatCommandActions,
-  ])
+  }, [config, messages, ready, queueCapacity, chatCommandActions])
 
   // -----------------------------------------------------------------------
   // Speech consumer - plays items one at a time

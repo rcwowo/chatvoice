@@ -130,9 +130,7 @@ export function SettingsDialog({
             <div
               className={cn(
                 !isCompact && "mt-6 p-6",
-                isCompact &&
-                  activeTab === "general" &&
-                  "mt-6 px-4 pb-4 pt-6",
+                isCompact && activeTab === "general" && "mt-6 px-4 pt-6 pb-4",
                 isCompact && activeTab !== "general" && "p-4"
               )}
             >

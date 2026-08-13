@@ -1,5 +1,12 @@
 [
     {
+        "version": "1.2.1",
+        "date": "2026-08-14",
+        "items": [
+            "Added a sharable commands page."
+        ]
+    },
+    {
         "version": "1.2.0",
         "date": "2026-07-14",
         "items": [

@@ -11,10 +11,7 @@ import {
   Users,
 } from "lucide-react"
 
-import type {
-  MessageTimestampFormat,
-  QueueMode,
-} from "@/lib/chatvoice-config"
+import type { MessageTimestampFormat, QueueMode } from "@/lib/chatvoice-config"
 import logoSrc from "/branding/logo.png"
 import iconSrc from "/branding/icon.png"
 import { useChatvoiceSettings } from "@/lib/chatvoice-context"
@@ -56,10 +53,12 @@ export function GeneralTab() {
           <div className="min-w-0 flex-1">
             {/* Logo */}
             <img src={logoSrc} alt="Chatvoice" className="h-6 dark:invert" />
-            <p className="text-xs text-muted-foreground mt-1">Version {version}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Version {version}
+            </p>
             <p className="mt-3 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
-              Let your chat have a voice! Read Twitch chat messages aloud using your
-              browser's built-in speech synthesis capabilities.
+              Let your chat have a voice! Read Twitch chat messages aloud using
+              your browser's built-in speech synthesis capabilities.
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -75,7 +74,7 @@ export function GeneralTab() {
               <button
                 type="button"
                 onClick={() => setChangelogOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-md bg-foreground/5 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors cursor-pointer hover:bg-foreground/10 hover:text-foreground"
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-foreground/5 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
               >
                 <SparklesIcon className="size-3" />
                 What's new
@@ -266,7 +265,8 @@ const QUEUE_MODE_OPTIONS: {
   {
     value: "small-chat",
     label: "Small chat",
-    description: "Queue messages as they arrive, up to the queue limit. Best for smaller, slower chats.",
+    description:
+      "Queue messages as they arrive, up to the queue limit. Best for smaller, slower chats.",
     icon: User,
   },
   {

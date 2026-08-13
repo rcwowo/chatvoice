@@ -59,7 +59,9 @@ export function getAssignment(
   return withStore("readonly", (store) => store.get(userName))
 }
 
-export function putAssignment(assignment: VoiceAssignment): Promise<IDBValidKey> {
+export function putAssignment(
+  assignment: VoiceAssignment
+): Promise<IDBValidKey> {
   return withStore("readwrite", (store) => store.put(assignment))
 }
 

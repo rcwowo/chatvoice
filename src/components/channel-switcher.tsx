@@ -1,10 +1,5 @@
 import * as React from "react"
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  PlusIcon,
-  Trash2Icon,
-} from "lucide-react"
+import { CheckIcon, ChevronDownIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { toast } from "sonner"
 
 import { useChatvoice } from "@/lib/chatvoice-context"
@@ -28,7 +23,7 @@ function ConnectionStatusDot({
       className={cn(
         "size-2 shrink-0 rounded-full",
         connected && "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.55)]",
-        connecting && !connected && "bg-amber-400 animate-pulse",
+        connecting && !connected && "animate-pulse bg-amber-400",
         !connected && !connecting && "bg-muted-foreground/40"
       )}
       aria-hidden
@@ -151,13 +146,7 @@ export function ChannelSwitcher() {
     }
 
     connectWithToast(activeChannel)
-  }, [
-    activeChannel,
-    connected,
-    connectWithToast,
-    connecting,
-    stopConnection,
-  ])
+  }, [activeChannel, connected, connectWithToast, connecting, stopConnection])
 
   const handleAddChannel = () => {
     const channel = normalizeChannelName(newChannel)
@@ -175,10 +164,7 @@ export function ChannelSwitcher() {
     setNewChannel("")
   }
 
-  const handleRemoveChannel = (
-    event: React.MouseEvent,
-    channel: string
-  ) => {
+  const handleRemoveChannel = (event: React.MouseEvent, channel: string) => {
     event.stopPropagation()
     const nextChannels = savedChannels.filter((item) => item !== channel)
     const wasActive = activeChannel === channel
@@ -229,7 +215,7 @@ export function ChannelSwitcher() {
           onClick={toggleConnection}
           disabled={connecting}
           aria-label={connectionLabel}
-          className="flex min-w-0 flex-1 items-center cursor-pointer gap-2 px-2.5 text-sm text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 dark:hover:bg-input/50"
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-2.5 text-sm text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 dark:hover:bg-input/50"
         >
           <ConnectionStatusDot
             connected={isActiveChannelConnected}
@@ -246,11 +232,11 @@ export function ChannelSwitcher() {
           aria-expanded={open}
           aria-haspopup="listbox"
           aria-label="Switch channel"
-          className="flex size-7 h-full items-center cursor-pointer justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground dark:hover:bg-input/50"
+          className="flex size-7 h-full cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground dark:hover:bg-input/50"
         >
           <ChevronDownIcon
             className={cn(
-              "size-4 transition-transform duration-200 -ml-0.5",
+              "-ml-0.5 size-4 transition-transform duration-200",
               open && "rotate-180"
             )}
           />
@@ -264,7 +250,7 @@ export function ChannelSwitcher() {
           className="absolute top-full right-0 z-50 mt-1.5 w-72 overflow-hidden rounded-lg border border-border bg-popover shadow-lg"
         >
           <div className="border-b border-border px-3 py-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
               Channels
             </p>
           </div>
@@ -300,7 +286,7 @@ export function ChannelSwitcher() {
                   >
                     <span className="flex size-3.5 shrink-0 items-center justify-center">
                       {isSelected ? (
-                        <CheckIcon className="size-3.5 text-primary stroke-4" />
+                        <CheckIcon className="size-3.5 stroke-4 text-primary" />
                       ) : null}
                     </span>
                     <span className="min-w-0 flex-1 truncate font-medium">

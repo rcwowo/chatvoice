@@ -8,10 +8,7 @@ import {
   loadConfig,
   saveConfig,
 } from "@/lib/chatvoice-config"
-import {
-  bulkPutAssignments,
-  migrateFromRecord,
-} from "@/lib/assignments-db"
+import { bulkPutAssignments, migrateFromRecord } from "@/lib/assignments-db"
 
 export function useChatvoiceConfig() {
   const [config, setConfig] = React.useState<AppConfig>(() =>
@@ -60,23 +57,20 @@ export function useChatvoiceConfig() {
     []
   )
 
-  const restoreBackup = React.useCallback(
-    async (payload: string) => {
-      const result = importConfigBackup(payload)
-      saveConfig(result.config)
+  const restoreBackup = React.useCallback(async (payload: string) => {
+    const result = importConfigBackup(payload)
+    saveConfig(result.config)
 
-      // Restore assignments into IndexedDB
-      if (result.assignments.length > 0) {
-        await bulkPutAssignments(result.assignments)
-      }
+    // Restore assignments into IndexedDB
+    if (result.assignments.length > 0) {
+      await bulkPutAssignments(result.assignments)
+    }
 
-      const loaded = loadConfig()
-      const { assignments: _, ...cleanLoaded } = loaded
-      setConfig(cleanLoaded as AppConfig)
-      return result.config
-    },
-    []
-  )
+    const loaded = loadConfig()
+    const { assignments: _, ...cleanLoaded } = loaded
+    setConfig(cleanLoaded as AppConfig)
+    return result.config
+  }, [])
 
   const completeOnboarding = React.useCallback(() => {
     setNeedsOnboarding(false)

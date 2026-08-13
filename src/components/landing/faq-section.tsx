@@ -17,7 +17,7 @@ const FAQ_ITEMS = [
   {
     question: "Do I need to login to use Chatvoice?",
     answer:
-    "No! Chatvoice connects to Twitch anonymously via IRC, meaning you can connect to any channel. All of your data, like settings and voice assignments are stored locally in your browser - and you can backup or restore them at any point via a JSON file.",
+      "No! Chatvoice connects to Twitch anonymously via IRC, meaning you can connect to any channel. All of your data, like settings and voice assignments are stored locally in your browser - and you can backup or restore them at any point via a JSON file.",
   },
   {
     question: "Why do you recommend Chrome or Edge?",
@@ -28,7 +28,7 @@ const FAQ_ITEMS = [
     question: "How does it compare to Speechchat?",
     answer:
       "Speechchat is a webapp what inspired the creation of Chatvoice. The main difference is that Chatvoice allows you to assign or auto-assign specific voices to different chatters, whereas Speechchat only uses one voice for all chatters.",
-  }
+  },
 ] as const
 
 export function FaqSection({ className }: { className?: string }) {
@@ -46,7 +46,7 @@ export function FaqSection({ className }: { className?: string }) {
         id="faq-heading"
         className={cn(
           "font-syne text-3xl font-bold tracking-tight text-balance sm:text-4xl",
-          "animate-in fade-in slide-in-from-bottom-3 duration-700 fill-mode-both"
+          "animate-in duration-700 fill-mode-both fade-in slide-in-from-bottom-3"
         )}
       >
         Frequently Asked Questions
@@ -55,7 +55,7 @@ export function FaqSection({ className }: { className?: string }) {
       <div
         className={cn(
           "mt-10 w-full text-left sm:mt-12",
-          "animate-in fade-in slide-in-from-bottom-3 duration-700 delay-200 fill-mode-both"
+          "animate-in delay-200 duration-700 fill-mode-both fade-in slide-in-from-bottom-3"
         )}
       >
         {FAQ_ITEMS.map((item, index) => {

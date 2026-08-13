@@ -8,12 +8,7 @@ import {
 } from "@/lib/chatvoice-config"
 import { getAssignment, putAssignment } from "@/lib/assignments-db"
 
-export type ChatCommandId =
-  | "queue"
-  | "playback"
-  | "skip"
-  | "clear"
-  | "newVoice"
+export type ChatCommandId = "queue" | "playback" | "skip" | "clear" | "newVoice"
 
 export type ParsedChatCommand =
   | { id: "queue"; action: "on" | "off" }

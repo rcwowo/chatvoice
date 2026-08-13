@@ -75,10 +75,7 @@ function ResizeHandle({
         isDragging && "select-none"
       )}
     >
-      <div
-        aria-hidden
-        className="absolute inset-y-0 -left-1.5 z-10 w-3"
-      />
+      <div aria-hidden className="absolute inset-y-0 -left-1.5 z-10 w-3" />
       <div
         aria-hidden
         className={cn(
@@ -124,7 +121,8 @@ export function ChatQueueSplit({ chat, queue, playback }: ChatQueueSplitProps) {
   const [layout, setLayout] = React.useState(loadChatLayoutPrefs)
   const layoutRef = React.useRef(layout)
   const [isDragging, setIsDragging] = React.useState(false)
-  const [queuePanelWidth, setQueuePanelWidth] = React.useState(MIN_QUEUE_WIDTH_PX)
+  const [queuePanelWidth, setQueuePanelWidth] =
+    React.useState(MIN_QUEUE_WIDTH_PX)
   const [playbackHeight, setPlaybackHeight] = React.useState(0)
 
   const commitLayout = React.useCallback((next: ChatLayoutPrefs) => {
@@ -288,19 +286,17 @@ export function ChatQueueSplit({ chat, queue, playback }: ChatQueueSplitProps) {
     )
   }
 
-  const chatStyle =
-    layout.chatCollapsed
-      ? { flex: `0 0 ${COLLAPSED_BAR_WIDTH_PX}px` }
-      : layout.queueCollapsed
-        ? { flex: "1 1 0%" }
-        : { flex: `${layout.chatFraction} 1 0%` }
+  const chatStyle = layout.chatCollapsed
+    ? { flex: `0 0 ${COLLAPSED_BAR_WIDTH_PX}px` }
+    : layout.queueCollapsed
+      ? { flex: "1 1 0%" }
+      : { flex: `${layout.chatFraction} 1 0%` }
 
-  const queueStyle =
-    layout.queueCollapsed
-      ? { flex: `0 0 ${COLLAPSED_BAR_WIDTH_PX}px` }
-      : layout.chatCollapsed
-        ? { flex: "1 1 0%" }
-        : { flex: `${1 - layout.chatFraction} 1 0%` }
+  const queueStyle = layout.queueCollapsed
+    ? { flex: `0 0 ${COLLAPSED_BAR_WIDTH_PX}px` }
+    : layout.chatCollapsed
+      ? { flex: "1 1 0%" }
+      : { flex: `${1 - layout.chatFraction} 1 0%` }
 
   const playbackWidth = layout.queueCollapsed
     ? MIN_QUEUE_WIDTH_PX
@@ -314,7 +310,7 @@ export function ChatQueueSplit({ chat, queue, playback }: ChatQueueSplitProps) {
       <div
         className={cn(
           "flex h-full min-h-0 min-w-0 flex-1 flex-col",
-          layout.chatCollapsed && "shrink-0 flex-none"
+          layout.chatCollapsed && "flex-none shrink-0"
         )}
         style={chatStyle}
       >
@@ -340,7 +336,7 @@ export function ChatQueueSplit({ chat, queue, playback }: ChatQueueSplitProps) {
         ref={queuePanelRef}
         className={cn(
           "flex h-full min-h-0 min-w-0 flex-1 flex-col",
-          layout.queueCollapsed && "shrink-0 flex-none"
+          layout.queueCollapsed && "flex-none shrink-0"
         )}
         style={queueStyle}
       >

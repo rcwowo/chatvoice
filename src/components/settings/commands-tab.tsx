@@ -1,6 +1,6 @@
 import * as React from "react"
 import {
-  InfoIcon,
+  BotIcon,
   ListXIcon,
   PauseIcon,
   PowerIcon,
@@ -15,6 +15,15 @@ import {
   type CommandSetting,
   type CommandsConfig,
 } from "@/lib/chatvoice-config"
+import {
+  buildCommandsShareMessage,
+  buildCommandsShareUrl,
+  COMMAND_CATALOG,
+  COMMAND_SHARE_ORDER,
+  type CommandShareId,
+} from "@/lib/command-share"
+import { ShareCommandsDialog } from "@/components/settings/share-commands-dialog"
+import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -30,52 +39,28 @@ import {
   SettingsField,
 } from "@/components/settings/settings-primitives"
 
-type CommandRowConfig = {
-  key: keyof Omit<CommandsConfig, "whitelist">
-  command: string
-  description: string
-  icon: React.ComponentType<{ className?: string }>
+const COMMAND_ICONS: Record<
+  CommandShareId,
+  React.ComponentType<{ className?: string }>
+> = {
+  queue: PowerIcon,
+  playback: PauseIcon,
+  skip: SkipForwardIcon,
+  clear: ListXIcon,
+  newVoice: ShuffleIcon,
 }
-
-const COMMAND_ROWS: CommandRowConfig[] = [
-  {
-    key: "queue",
-    command: "!cv on / !cv off",
-    description: "Enable or disable adding new chat messages to the queue.",
-    icon: PowerIcon,
-  },
-  {
-    key: "playback",
-    command: "!cv pause / !cv play",
-    description: "Pause or resume the currently speaking message.",
-    icon: PauseIcon,
-  },
-  {
-    key: "skip",
-    command: "!cv skip",
-    description: "Skip the message currently being spoken.",
-    icon: SkipForwardIcon,
-  },
-  {
-    key: "clear",
-    command: "!cv clear",
-    description: "Clear every message waiting in the queue.",
-    icon: ListXIcon,
-  },
-  {
-    key: "newVoice",
-    command: "!newvoice",
-    description:
-      "Reassign the chatter to a random voice if they already have one saved.",
-    icon: ShuffleIcon,
-  },
-]
 
 export function CommandsTab() {
   const { config, updateConfig } = useChatvoiceSettings()
+  const [shareOpen, setShareOpen] = React.useState(false)
   const [whitelistText, setWhitelistText] = React.useState(
     config.commands.whitelist.join("\n")
   )
+  const shareUrl = buildCommandsShareUrl(
+    config.commands,
+    window.location.origin
+  )
+  const shareMessage = buildCommandsShareMessage(config.commands)
 
   const updateCommand = (
     key: keyof Omit<CommandsConfig, "whitelist">,
@@ -107,32 +92,53 @@ export function CommandsTab() {
         description="Let chat control Chatvoice. Every command starts disabled."
       />
 
-      <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
-        <InfoIcon className="mt-0.5 size-3.5 shrink-0" />
-        <p>
-          By default, <span className="font-medium text-foreground">!cv</span>{" "}
-          commands can only be used by moderators.{" "}
-          <span className="font-medium text-foreground">!newvoice</span> can be used by
-          everyone when enabled. You can change the minimum role on each command below.
-        </p>
+      <div className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+        <div className="flex items-start gap-2">
+          <BotIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+          <div>
+            <p className="text-sm font-medium">
+              Add these commands to your chatbot
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Share a public commands page with your chat so viewers can see
+              what&apos;s enabled and what each command does.
+            </p>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="shrink-0"
+          onClick={() => setShareOpen(true)}
+        >
+          Share commands
+        </Button>
       </div>
 
       <div className="space-y-2">
-        {COMMAND_ROWS.map((row) => {
-          const setting = config.commands[row.key]
+        {COMMAND_SHARE_ORDER.map((id) => {
+          const catalog = COMMAND_CATALOG[id]
+          const setting = config.commands[id]
           return (
             <CommandRow
-              key={row.key}
-              command={row.command}
-              description={row.description}
-              icon={row.icon}
+              key={id}
+              command={catalog.command}
+              description={catalog.description}
+              icon={COMMAND_ICONS[id]}
               setting={setting}
-              onEnabledChange={(enabled) => updateCommand(row.key, { enabled })}
-              onMinRoleChange={(minRole) => updateCommand(row.key, { minRole })}
+              onEnabledChange={(enabled) => updateCommand(id, { enabled })}
+              onMinRoleChange={(minRole) => updateCommand(id, { minRole })}
             />
           )
         })}
       </div>
+
+      <ShareCommandsDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        shareMessage={shareMessage}
+        shareUrl={shareUrl}
+      />
 
       <Separator />
 

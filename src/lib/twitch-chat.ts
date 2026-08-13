@@ -62,7 +62,13 @@ export type TwitchSystemMessage = {
   details: string | null
   emotes: TwitchEmote[]
   receivedAt: string
-  event: "subscription" | "raid" | "announcement" | "connection" | "notice" | "status"
+  event:
+    | "subscription"
+    | "raid"
+    | "announcement"
+    | "connection"
+    | "notice"
+    | "status"
   level: "info" | "success" | "warning" | "error"
   accentColor: string | null
 }
@@ -389,8 +395,8 @@ function parseUserNotice(raw: string): TwitchSystemMessage | null {
     ? parseEmotesTag(parsed.tags.get("emotes") ?? "", trailingText)
     : []
 
-  const text = [headline, details].filter(Boolean).join(" ").trim() ||
-    "Channel event"
+  const text =
+    [headline, details].filter(Boolean).join(" ").trim() || "Channel event"
 
   return {
     id:
@@ -475,7 +481,9 @@ function parseEmotesTag(raw: string, text: string): TwitchEmote[] {
 
 function parseTmiTimestamp(tags: Map<string, string>): string {
   const tmiTs = tags.get("tmi-sent-ts")
-  return tmiTs ? new Date(Number(tmiTs)).toISOString() : new Date().toISOString()
+  return tmiTs
+    ? new Date(Number(tmiTs)).toISOString()
+    : new Date().toISOString()
 }
 
 function decodeTagValue(value: string): string {
@@ -487,9 +495,7 @@ function decodeTagValue(value: string): string {
     .replace(/\\\\/g, "\\")
 }
 
-function getUserNoticeEvent(
-  msgId: string
-): TwitchSystemMessage["event"] {
+function getUserNoticeEvent(msgId: string): TwitchSystemMessage["event"] {
   if (msgId === "announcement") {
     return "announcement"
   }

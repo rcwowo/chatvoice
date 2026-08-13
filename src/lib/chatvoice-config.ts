@@ -127,7 +127,9 @@ const backupEnvelopeSchema = z.object({
 export type VoiceProfile = z.infer<typeof voiceProfileSchema>
 export type VoiceAssignment = z.infer<typeof voiceAssignmentSchema>
 export type QueueMode = z.infer<typeof queueModeSchema>
-export type MessageTimestampFormat = z.infer<typeof messageTimestampFormatSchema>
+export type MessageTimestampFormat = z.infer<
+  typeof messageTimestampFormatSchema
+>
 export type PlaybackConfig = z.infer<typeof playbackSchema>
 export type CommandRole = z.infer<typeof commandRoleSchema>
 export type CommandSetting = z.infer<typeof commandSettingSchema>
@@ -153,7 +155,7 @@ const DEFAULT_VOICE_PROFILES: VoiceProfile[] = [
     pitch: -10,
     volume: 0,
     enabled: true,
-  }
+  },
 ]
 
 export function createDefaultConfig(): AppConfig {
@@ -244,9 +246,7 @@ export function exportConfigBackup(
 ): string {
   const configWithAssignments = {
     ...normalizeConfig(config),
-    assignments: Object.fromEntries(
-      assignments.map((a) => [a.userName, a])
-    ),
+    assignments: Object.fromEntries(assignments.map((a) => [a.userName, a])),
   }
 
   const envelope: BackupEnvelope = {
@@ -376,7 +376,10 @@ export async function ensureVoiceAssignment(
     // Use the configured default voice, or fall back to first enabled profile
     const defaultId =
       config.playback.defaultVoiceProfileId &&
-      hasVoiceProfile(config.voiceProfiles, config.playback.defaultVoiceProfileId)
+      hasVoiceProfile(
+        config.voiceProfiles,
+        config.playback.defaultVoiceProfileId
+      )
         ? config.playback.defaultVoiceProfileId
         : pickRandomVoiceProfileId(config.voiceProfiles)
 
@@ -595,9 +598,8 @@ function normalizeConfig(config: AppConfig): AppConfig {
     updatedAt: config.updatedAt || new Date().toISOString(),
     twitch: normalizeTwitchConfig(config.twitch),
     voiceProfiles: nextVoiceProfiles,
-    assignments: Object.keys(nextAssignments).length > 0
-      ? nextAssignments
-      : undefined,
+    assignments:
+      Object.keys(nextAssignments).length > 0 ? nextAssignments : undefined,
   }
 }
 

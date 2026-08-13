@@ -273,7 +273,7 @@ export function VoiceAssignmentDemo({ className }: { className?: string }) {
       <div
         className={cn(
           "overflow-hidden rounded-2xl border border-white/10 bg-[#0c0c0c] shadow-2xl shadow-black/50",
-          "animate-in fade-in slide-in-from-left-2 duration-700 delay-700 fill-mode-both"
+          "animate-in delay-700 duration-700 fill-mode-both fade-in slide-in-from-left-2"
         )}
       >
         <div className="border-b border-white/5 px-4 py-3 sm:px-5">
@@ -307,7 +307,9 @@ export function VoiceAssignmentDemo({ className }: { className?: string }) {
                     background: `color-mix(in oklch, ${row.accent} ${active && phase === "chatter" ? 45 : 30}%, #1a1a1a)`,
                     boxShadow: `inset 0 0 0 1px color-mix(in oklch, ${row.accent} ${active && phase === "chatter" ? 60 : 40}%, transparent)`,
                     transform:
-                      active && phase === "chatter" ? "scale(1.06)" : "scale(1)",
+                      active && phase === "chatter"
+                        ? "scale(1.06)"
+                        : "scale(1)",
                   }}
                 >
                   {row.initials}
@@ -316,7 +318,9 @@ export function VoiceAssignmentDemo({ className }: { className?: string }) {
                   <p className="truncate text-sm font-medium text-white sm:text-base">
                     {row.displayName}
                   </p>
-                  <p className="truncate text-xs text-white/40">@{row.userName}</p>
+                  <p className="truncate text-xs text-white/40">
+                    @{row.userName}
+                  </p>
                 </div>
               </li>
             )
@@ -360,7 +364,7 @@ export function VoiceAssignmentDemo({ className }: { className?: string }) {
       <div
         className={cn(
           "relative overflow-hidden rounded-2xl border border-white/10 bg-[#0c0c0c] shadow-2xl shadow-black/50",
-          "animate-in fade-in slide-in-from-right-2 duration-700 delay-700 fill-mode-both",
+          "animate-in delay-700 duration-700 fill-mode-both fade-in slide-in-from-right-2",
           shuffling && "ring-1 ring-white/10"
         )}
       >
@@ -376,8 +380,7 @@ export function VoiceAssignmentDemo({ className }: { className?: string }) {
               activeIndex === index &&
               (phase === "voice" || phase === "hold")
             const linked = reduceMotion || index < linkedCount
-            const emphasized =
-              reduceMotion || shuffling || linked || active
+            const emphasized = reduceMotion || shuffling || linked || active
             const offsetY = flipOffsets[voice.name] ?? 0
 
             return (

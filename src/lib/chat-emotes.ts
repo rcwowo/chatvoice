@@ -1,4 +1,9 @@
-import type { TwitchChatMessage, TwitchEmote, TwitchEmoteProvider, TwitchSystemMessage } from "@/lib/twitch-chat"
+import type {
+  TwitchChatMessage,
+  TwitchEmote,
+  TwitchEmoteProvider,
+  TwitchSystemMessage,
+} from "@/lib/twitch-chat"
 
 type EmoteCatalogEntry = {
   id: string
@@ -151,7 +156,10 @@ export function hydrateSystemMessageEmotes(
   }
 }
 
-export function stripMessageEmotes(text: string, emotes: TwitchEmote[]): string {
+export function stripMessageEmotes(
+  text: string,
+  emotes: TwitchEmote[]
+): string {
   const thirdPartyRanges = normalizeRanges(
     emotes.map((emote) => ({ start: emote.start, end: emote.end }))
   )
@@ -250,9 +258,13 @@ function normalizeRanges(ranges: TextRange[]): TextRange[] {
   return merged
 }
 
-async function fetchBetterTtvEmotes(roomId: string): Promise<EmoteCatalogEntry[]> {
+async function fetchBetterTtvEmotes(
+  roomId: string
+): Promise<EmoteCatalogEntry[]> {
   const [globalResponse, roomResponse] = await Promise.allSettled([
-    fetchJson<BetterTtvEmote[]>("https://api.betterttv.net/3/cached/emotes/global"),
+    fetchJson<BetterTtvEmote[]>(
+      "https://api.betterttv.net/3/cached/emotes/global"
+    ),
     fetchJson<BetterTtvUserResponse>(
       `https://api.betterttv.net/3/cached/users/twitch/${encodeURIComponent(roomId)}`
     ),
@@ -283,7 +295,9 @@ async function fetchFrankerFaceZEmotes(
   roomId: string
 ): Promise<EmoteCatalogEntry[]> {
   const [globalResponse, roomResponse] = await Promise.allSettled([
-    fetchJson<FrankerFaceZGlobalResponse>("https://api.frankerfacez.com/v1/set/global"),
+    fetchJson<FrankerFaceZGlobalResponse>(
+      "https://api.frankerfacez.com/v1/set/global"
+    ),
     fetchJson<FrankerFaceZRoomResponse>(
       `https://api.frankerfacez.com/v1/room/id/${encodeURIComponent(roomId)}`
     ),
@@ -309,7 +323,9 @@ async function fetchFrankerFaceZEmotes(
     .filter((emote) => emote.imageUrl)
 }
 
-async function fetchSevenTvEmotes(roomId: string): Promise<EmoteCatalogEntry[]> {
+async function fetchSevenTvEmotes(
+  roomId: string
+): Promise<EmoteCatalogEntry[]> {
   const [globalResponse, roomResponse] = await Promise.allSettled([
     fetchJson<SevenTvEmoteSet>("https://7tv.io/v3/emote-sets/global"),
     fetchJson<SevenTvUserResponse>(
@@ -343,7 +359,9 @@ function extractFrankerFaceZGlobalEmotes(
   const defaultSets = new Set((response.default_sets ?? []).map(String))
 
   return Object.entries(response.sets ?? {}).flatMap(([setId, set]) =>
-    defaultSets.size === 0 || defaultSets.has(setId) ? set.emoticons ?? [] : []
+    defaultSets.size === 0 || defaultSets.has(setId)
+      ? (set.emoticons ?? [])
+      : []
   )
 }
 
@@ -358,8 +376,9 @@ function buildSevenTvImageUrl(host: SevenTvHost | undefined): string {
     return ""
   }
 
-  const file = host.files?.find((candidate) => candidate.name.startsWith("1x."))
-    ?? host.files?.[0]
+  const file =
+    host.files?.find((candidate) => candidate.name.startsWith("1x.")) ??
+    host.files?.[0]
 
   if (!file?.name) {
     return ""

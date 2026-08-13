@@ -21,10 +21,7 @@ import type {
 } from "@/lib/twitch-chat"
 import type { MemberBadge } from "@/lib/member-badges"
 
-import {
-  formatMessageTimestamp,
-  useChatvoice,
-} from "@/lib/chatvoice-context"
+import { formatMessageTimestamp, useChatvoice } from "@/lib/chatvoice-context"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -146,7 +143,13 @@ function renderTextWithLinks(text: string, keyPrefix: string) {
   return parts
 }
 
-function MessageText({ text, emotes }: { text: string; emotes: TwitchEmote[] }) {
+function MessageText({
+  text,
+  emotes,
+}: {
+  text: string
+  emotes: TwitchEmote[]
+}) {
   if (emotes.length === 0) {
     return <>{renderTextWithLinks(text, "message")}</>
   }
@@ -157,10 +160,7 @@ function MessageText({ text, emotes }: { text: string; emotes: TwitchEmote[] }) 
   for (const emote of emotes) {
     if (emote.start > lastIdx) {
       parts.push(
-        ...renderTextWithLinks(
-          text.slice(lastIdx, emote.start),
-          `t-${lastIdx}`
-        )
+        ...renderTextWithLinks(text.slice(lastIdx, emote.start), `t-${lastIdx}`)
       )
     }
     const emoteName = text.slice(emote.start, emote.end + 1)
@@ -261,9 +261,7 @@ function SystemMessageRow({
             {timestamp}
           </span>
         ) : null}
-        <span className="italic text-muted-foreground">
-          {message.text}
-        </span>
+        <span className="text-muted-foreground italic">{message.text}</span>
       </div>
     )
   }
@@ -289,9 +287,7 @@ function SystemMessageRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <Icon className="size-[1em] shrink-0 text-foreground" />
-          <span className="font-semibold text-foreground">
-            {meta.label}
-          </span>
+          <span className="font-semibold text-foreground">{meta.label}</span>
         </div>
 
         {showHeadline ? (
@@ -331,23 +327,27 @@ export function ChatPage() {
   const timestampFormat = config.playback.messageTimestampFormat
   const chatScale = config.playback.chatScale
 
-  const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "auto") => {
-    const el = chatContainerRef.current
-    if (!el) return
+  const scrollToBottom = React.useCallback(
+    (behavior: ScrollBehavior = "auto") => {
+      const el = chatContainerRef.current
+      if (!el) return
 
-    isProgrammaticScrollRef.current = true
-    el.scrollTo({ top: el.scrollHeight, behavior })
-    requestAnimationFrame(() => {
-      isProgrammaticScrollRef.current = false
-    })
-  }, [])
+      isProgrammaticScrollRef.current = true
+      el.scrollTo({ top: el.scrollHeight, behavior })
+      requestAnimationFrame(() => {
+        isProgrammaticScrollRef.current = false
+      })
+    },
+    []
+  )
 
   const handleChatScroll = React.useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
       if (isProgrammaticScrollRef.current) return
 
       const el = event.currentTarget
-      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+      const distanceFromBottom =
+        el.scrollHeight - el.scrollTop - el.clientHeight
       const isNearBottom = distanceFromBottom <= 24
 
       setIsScrollPaused(!isNearBottom)
@@ -363,7 +363,12 @@ export function ChatPage() {
   React.useEffect(() => {
     const container = chatContainerRef.current
     const messageList = messageListRef.current
-    if (!container || !messageList || isScrollPaused || typeof ResizeObserver === "undefined") {
+    if (
+      !container ||
+      !messageList ||
+      isScrollPaused ||
+      typeof ResizeObserver === "undefined"
+    ) {
       return
     }
 
@@ -580,7 +585,7 @@ export function ChatPage() {
                     >
                       <div className="flex min-w-0 items-center gap-2">
                         <p
-                          className="min-w-0 flex-1 truncate font-medium text-sm"
+                          className="min-w-0 flex-1 truncate text-sm font-medium"
                           title={item.assignment.displayName}
                         >
                           {item.assignment.displayName}
@@ -593,7 +598,7 @@ export function ChatPage() {
                           {item.profile.label}
                         </Badge>
                       </div>
-                      <p className="mt-1.5 break-words text-[11px] leading-snug text-muted-foreground/50">
+                      <p className="mt-1.5 text-[11px] leading-snug break-words text-muted-foreground/50">
                         {item.text}
                       </p>
                     </div>
@@ -631,7 +636,7 @@ export function ChatPage() {
                   <Button
                     variant="default"
                     size="icon-lg"
-                    className="size-12 rounded-full border-2 border-transparent text-white shadow-[0_8px_32px_-8px_#6E11B0B3] [background:linear-gradient(#6E11B0,#2E074A)_padding-box,linear-gradient(#2E074A,#6E11B0)_border-box] transition-transform hover:scale-[1.02] hover:bg-transparent active:scale-[0.98]"
+                    className="size-12 rounded-full border-2 border-transparent text-white shadow-[0_8px_32px_-8px_#6E11B0B3] transition-transform [background:linear-gradient(#6E11B0,#2E074A)_padding-box,linear-gradient(#2E074A,#6E11B0)_border-box] hover:scale-[1.02] hover:bg-transparent active:scale-[0.98]"
                     onClick={togglePlayback}
                     aria-label={
                       playbackEnabled ? "Pause speech" : "Resume speech"
