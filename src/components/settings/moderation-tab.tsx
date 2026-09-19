@@ -12,7 +12,6 @@ import {
   SectionHeading,
   SettingsCheckbox,
   SettingsField,
-  SettingsRange,
 } from "@/components/settings/settings-primitives"
 import {
   ArrowRight,
@@ -237,47 +236,11 @@ export function ModerationTab() {
       <Separator />
 
       <SectionHeading
-        title="Limits and blocklists"
-        description="Keep the queue stable with length caps and local-only filters."
+        title="Blacklists"
+        description="Any users or terms matched in these lists will be blocked from the queue."
       />
 
       <div className="space-y-4">
-        <SettingsRange
-          label="Minimum message length"
-          value={config.playback.minMessageLength}
-          onChange={(value) =>
-            updateConfig((current) => ({
-              ...current,
-              playback: { ...current.playback, minMessageLength: value },
-            }))
-          }
-          min={0}
-          max={50}
-        />
-        <SettingsRange
-          label="Maximum message length"
-          value={config.playback.maxMessageLength}
-          onChange={(value) =>
-            updateConfig((current) => ({
-              ...current,
-              playback: { ...current.playback, maxMessageLength: value },
-            }))
-          }
-          min={20}
-          max={300}
-        />
-        <SettingsRange
-          label="Queue size cap"
-          value={config.playback.maxQueueSize}
-          onChange={(value) =>
-            updateConfig((current) => ({
-              ...current,
-              playback: { ...current.playback, maxQueueSize: value },
-            }))
-          }
-          min={1}
-          max={25}
-        />
         <SettingsField label="Blocked usernames (one per line)">
           <Textarea
             rows={4}

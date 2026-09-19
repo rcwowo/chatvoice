@@ -59,8 +59,48 @@ const SETTINGS_TABS: {
   { id: "moderation", label: "Moderation", icon: ShieldIcon },
   { id: "users", label: "Users", icon: UsersIcon },
   { id: "commands", label: "Commands", icon: TerminalIcon },
-  { id: "backup", label: "Backup", icon: DatabaseIcon },
 ]
+
+const DATA_TABS: {
+  id: SettingsTab
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+}[] = [{ id: "backup", label: "Backup", icon: DatabaseIcon }]
+
+function SettingsTabButton({
+  tab,
+  isCompact,
+  active,
+  onSelect,
+}: {
+  tab: {
+    id: SettingsTab
+    label: string
+    icon: React.ComponentType<{ className?: string }>
+  }
+  isCompact: boolean
+  active: boolean
+  onSelect: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      title={tab.label}
+      aria-label={tab.label}
+      className={cn(
+        "flex items-center rounded-lg py-2 text-sm transition-colors",
+        isCompact ? "justify-center px-2" : "gap-2.5 px-2.5 text-left",
+        active
+          ? "bg-background font-medium text-foreground shadow-sm"
+          : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+      )}
+    >
+      <tab.icon className="size-4 shrink-0" />
+      {!isCompact && tab.label}
+    </button>
+  )
+}
 
 export function SettingsDialog({
   open,
@@ -98,25 +138,25 @@ export function SettingsDialog({
             )}
             <div className="flex flex-col gap-0.5">
               {SETTINGS_TABS.map((tab) => (
-                <button
+                <SettingsTabButton
                   key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  title={tab.label}
-                  aria-label={tab.label}
-                  className={cn(
-                    "flex items-center rounded-lg py-2 text-sm transition-colors",
-                    isCompact
-                      ? "justify-center px-2"
-                      : "gap-2.5 px-2.5 text-left",
-                    activeTab === tab.id
-                      ? "bg-background font-medium text-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
-                  )}
-                >
-                  <tab.icon className="size-4 shrink-0" />
-                  {!isCompact && tab.label}
-                </button>
+                  tab={tab}
+                  isCompact={isCompact}
+                  active={activeTab === tab.id}
+                  onSelect={() => setActiveTab(tab.id)}
+                />
+              ))}
+            </div>
+
+            <div className="mt-auto flex flex-col gap-0.5 border-t border-border pt-3">
+              {DATA_TABS.map((tab) => (
+                <SettingsTabButton
+                  key={tab.id}
+                  tab={tab}
+                  isCompact={isCompact}
+                  active={activeTab === tab.id}
+                  onSelect={() => setActiveTab(tab.id)}
+                />
               ))}
             </div>
           </nav>

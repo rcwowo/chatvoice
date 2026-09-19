@@ -5,6 +5,7 @@ import {
   MonitorIcon,
   MoonIcon,
   PlugIcon,
+  ShuffleIcon,
   SparklesIcon,
   SunIcon,
   User,
@@ -19,6 +20,13 @@ import { useTheme } from "@/components/theme-provider"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   SectionHeading,
   SettingsField,
@@ -164,6 +172,98 @@ export function GeneralTab() {
           }))
         }
       />
+
+      <Separator />
+
+      <SectionHeading
+        title="Message limits"
+        description="Keep the queue stable with message and queue size caps."
+      />
+      <div className="space-y-4">
+        <SettingsRange
+          label="Minimum message length"
+          value={config.playback.minMessageLength}
+          onChange={(value) =>
+            updateConfig((current) => ({
+              ...current,
+              playback: { ...current.playback, minMessageLength: value },
+            }))
+          }
+          min={0}
+          max={50}
+        />
+        <SettingsRange
+          label="Maximum message length"
+          value={config.playback.maxMessageLength}
+          onChange={(value) =>
+            updateConfig((current) => ({
+              ...current,
+              playback: { ...current.playback, maxMessageLength: value },
+            }))
+          }
+          min={20}
+          max={300}
+        />
+        <SettingsRange
+          label="Queue size cap"
+          value={config.playback.maxQueueSize}
+          onChange={(value) =>
+            updateConfig((current) => ({
+              ...current,
+              playback: { ...current.playback, maxQueueSize: value },
+            }))
+          }
+          min={1}
+          max={25}
+        />
+      </div>
+
+      <Separator />
+
+      <SectionHeading
+        title="Voice assignment"
+        description="Control how voices are given to new chatters."
+      />
+      <SettingsToggle
+        icon={ShuffleIcon}
+        title="Auto-assign voices"
+        description="Randomly assign and save a voice for each new chatter. When off, unassigned chatters use the default voice below without saving."
+        checked={config.playback.autoAssignVoices}
+        onCheckedChange={(checked) =>
+          updateConfig((current) => ({
+            ...current,
+            playback: { ...current.playback, autoAssignVoices: checked },
+          }))
+        }
+      />
+      {!config.playback.autoAssignVoices && (
+        <SettingsField label="Default voice for unassigned chatters">
+          <Select
+            value={config.playback.defaultVoiceProfileId || "__random__"}
+            onValueChange={(value) =>
+              updateConfig((current) => ({
+                ...current,
+                playback: {
+                  ...current.playback,
+                  defaultVoiceProfileId: value === "__random__" ? "" : value,
+                },
+              }))
+            }
+          >
+            <SelectTrigger className="w-full max-w-xs">
+              <SelectValue placeholder="Random (from enabled)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__random__">Random (from enabled)</SelectItem>
+              {config.voiceProfiles.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingsField>
+      )}
 
       <Separator />
 
