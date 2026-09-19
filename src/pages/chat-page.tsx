@@ -33,10 +33,6 @@ import {
 import { ChatQueueSplit } from "@/components/chat-queue-split"
 import { EmptyState } from "@/components/dashboard-primitives"
 
-// ---------------------------------------------------------------------------
-// Badge rendering
-// ---------------------------------------------------------------------------
-
 function HoverTooltip({
   label,
   children,
@@ -90,11 +86,56 @@ function ChatBadges({
   )
 }
 
-// ---------------------------------------------------------------------------
-// Emote rendering
-// ---------------------------------------------------------------------------
+function renderTextWithLinks(
+  text: string,
+  keyPrefix: string,
+  soundNames?: Set<string>
+) {
+  const soundTokenPattern = soundNames?.size ? /\(([A-Za-z0-9_-]+)\)/g : null
 
-function renderTextWithLinks(text: string, keyPrefix: string) {
+  if (soundTokenPattern) {
+    const parts: React.ReactNode[] = []
+    let lastIdx = 0
+    let match: RegExpExecArray | null
+
+    while ((match = soundTokenPattern.exec(text)) !== null) {
+      if (!soundNames!.has((match[1] ?? "").toLowerCase())) {
+        continue
+      }
+
+      if (match.index > lastIdx) {
+        parts.push(
+          <span key={`${keyPrefix}-st-${lastIdx}`} className="text-foreground">
+            {text.slice(lastIdx, match.index)}
+          </span>
+        )
+      }
+
+      parts.push(
+        <span
+          key={`${keyPrefix}-sound-${match.index}`}
+          className="rounded bg-primary/10 px-1 font-medium text-primary"
+          title="Sound effect"
+        >
+          {match[0]}
+        </span>
+      )
+
+      lastIdx = match.index + match[0].length
+    }
+
+    if (parts.length > 0) {
+      if (lastIdx < text.length) {
+        parts.push(
+          <span key={`${keyPrefix}-st-${lastIdx}`} className="text-foreground">
+            {text.slice(lastIdx)}
+          </span>
+        )
+      }
+      return parts
+    }
+  }
+
   const urls = findMessageUrls(text)
 
   if (urls.length === 0) {
@@ -146,12 +187,14 @@ function renderTextWithLinks(text: string, keyPrefix: string) {
 function MessageText({
   text,
   emotes,
+  soundNames,
 }: {
   text: string
   emotes: TwitchEmote[]
+  soundNames?: Set<string>
 }) {
   if (emotes.length === 0) {
-    return <>{renderTextWithLinks(text, "message")}</>
+    return <>{renderTextWithLinks(text, "message", soundNames)}</>
   }
 
   const parts: React.ReactNode[] = []
@@ -160,7 +203,11 @@ function MessageText({
   for (const emote of emotes) {
     if (emote.start > lastIdx) {
       parts.push(
-        ...renderTextWithLinks(text.slice(lastIdx, emote.start), `t-${lastIdx}`)
+        ...renderTextWithLinks(
+          text.slice(lastIdx, emote.start),
+          `t-${lastIdx}`,
+          soundNames
+        )
       )
     }
     const emoteName = text.slice(emote.start, emote.end + 1)
@@ -181,7 +228,9 @@ function MessageText({
   }
 
   if (lastIdx < text.length) {
-    parts.push(...renderTextWithLinks(text.slice(lastIdx), `t-${lastIdx}`))
+    parts.push(
+      ...renderTextWithLinks(text.slice(lastIdx), `t-${lastIdx}`, soundNames)
+    )
   }
 
   return <>{parts}</>
@@ -326,6 +375,10 @@ export function ChatPage() {
   const queueEnabled = config.playback.queueEnabled
   const timestampFormat = config.playback.messageTimestampFormat
   const chatScale = config.playback.chatScale
+  const soundNames = React.useMemo(
+    () => new Set(config.soundEffects.map((sound) => sound.name.toLowerCase())),
+    [config.soundEffects]
+  )
 
   const scrollToBottom = React.useCallback(
     (behavior: ScrollBehavior = "auto") => {
@@ -490,6 +543,7 @@ export function ChatPage() {
                             <MessageText
                               text={message.text}
                               emotes={message.emotes}
+                              soundNames={soundNames}
                             />
                             {isPlaying ? (
                               <Badge

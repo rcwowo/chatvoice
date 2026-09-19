@@ -5,6 +5,10 @@ import { toast } from "sonner"
 import { useChatvoiceSettings } from "@/lib/chatvoice-context"
 import { exportConfigBackup } from "@/lib/chatvoice-config"
 import { getAllAssignments, clearAssignments } from "@/lib/assignments-db"
+import {
+  clearSoundEffectAudio,
+  getAllSoundEffectAudioBackup,
+} from "@/lib/sound-effects-db"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SectionHeading } from "@/components/settings/settings-primitives"
@@ -15,7 +19,8 @@ export function BackupTab() {
 
   const downloadBackup = async () => {
     const assignments = await getAllAssignments()
-    const backup = exportConfigBackup(config, assignments)
+    const soundEffectAudio = await getAllSoundEffectAudioBackup()
+    const backup = exportConfigBackup(config, assignments, soundEffectAudio)
     const blob = new Blob([backup], { type: "application/json" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
@@ -59,6 +64,7 @@ export function BackupTab() {
           <li>· Randomized user assignments</li>
           <li>· Filters, limits, and blocklists</li>
           <li>· Chat command settings and whitelist</li>
+          <li>· Sound effect settings and audio files</li>
           <li>· Schema version metadata for migrations</li>
         </ul>
       </div>
@@ -93,6 +99,7 @@ export function BackupTab() {
             )
           ) {
             await clearAssignments()
+            await clearSoundEffectAudio()
             localStorage.clear()
             window.location.reload()
           }

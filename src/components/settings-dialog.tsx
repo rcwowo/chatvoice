@@ -5,6 +5,7 @@ import {
   ShieldIcon,
   TerminalIcon,
   UsersIcon,
+  Volume2Icon,
   WrenchIcon,
 } from "lucide-react"
 
@@ -14,6 +15,7 @@ import { VoicesTab } from "@/components/settings/voices-tab"
 import { ModerationTab } from "@/components/settings/moderation-tab"
 import { UsersTab } from "@/components/settings/users-tab"
 import { CommandsTab } from "@/components/settings/commands-tab"
+import { SoundsTab } from "@/components/settings/sounds-tab"
 import { BackupTab } from "@/components/settings/backup-tab"
 import { cn } from "@/lib/utils"
 
@@ -37,16 +39,13 @@ function useCompactSettings() {
   return isCompact
 }
 
-// ---------------------------------------------------------------------------
-// Settings tab IDs
-// ---------------------------------------------------------------------------
-
 type SettingsTab =
   | "general"
   | "voices"
   | "moderation"
   | "users"
   | "commands"
+  | "sounds"
   | "backup"
 
 const SETTINGS_TABS: {
@@ -56,15 +55,12 @@ const SETTINGS_TABS: {
 }[] = [
   { id: "general", label: "General", icon: WrenchIcon },
   { id: "voices", label: "Voices", icon: AudioLinesIcon },
+  { id: "sounds", label: "Sounds", icon: Volume2Icon },
   { id: "moderation", label: "Moderation", icon: ShieldIcon },
   { id: "users", label: "Users", icon: UsersIcon },
   { id: "commands", label: "Commands", icon: TerminalIcon },
   { id: "backup", label: "Backup", icon: DatabaseIcon },
 ]
-
-// ---------------------------------------------------------------------------
-// Settings Dialog (exported)
-// ---------------------------------------------------------------------------
 
 export function SettingsDialog({
   open,
@@ -136,6 +132,7 @@ export function SettingsDialog({
             >
               {activeTab === "general" && <GeneralTab />}
               {activeTab === "voices" && <VoicesTab />}
+              {activeTab === "sounds" && <SoundsTab />}
               {activeTab === "moderation" && <ModerationTab />}
               {activeTab === "users" && <UsersTab />}
               {activeTab === "commands" && <CommandsTab />}
