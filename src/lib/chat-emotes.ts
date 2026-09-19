@@ -83,6 +83,9 @@ const PROVIDER_PRIORITY: Array<Exclude<TwitchEmoteProvider, "twitch">> = [
   "ffz",
 ]
 
+// Bounded so a stalled provider connection can't park room messages forever.
+const PROVIDER_FETCH_TIMEOUT_MS = 8_000
+
 export function createEmptyEmoteCatalog(): ThirdPartyEmoteCatalog {
   return new Map()
 }
@@ -388,7 +391,9 @@ function buildSevenTvImageUrl(host: SevenTvHost | undefined): string {
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url)
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(PROVIDER_FETCH_TIMEOUT_MS),
+  })
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status}`)
   }

@@ -60,7 +60,6 @@ export function UsersTab() {
     [config.playback.blockedUsers]
   )
 
-  // Load a page of assignments from IndexedDB
   React.useEffect(() => {
     let cancelled = false
 
@@ -75,7 +74,6 @@ export function UsersTab() {
     }
   }, [page, blockedSet, searchQuery, refreshKey])
 
-  // Reset page when search changes
   React.useEffect(() => {
     setPage(0)
   }, [searchQuery])

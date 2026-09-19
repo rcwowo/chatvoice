@@ -24,7 +24,6 @@ export function ChangelogDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  // Mark version as seen when the dialog is opened
   React.useEffect(() => {
     if (open) markVersionSeen()
   }, [open])

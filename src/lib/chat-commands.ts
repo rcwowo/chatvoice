@@ -34,9 +34,8 @@ const ROLE_RANK: Record<CommandRole, number> = {
 }
 
 /**
- * Parse a chat message into a Chatvoice command, or null if it is not one.
- * Known command syntax is recognized even when the command is disabled, so
- * these messages are never spoken as TTS.
+ * Recognizes known command syntax even when the command is disabled, so these
+ * messages are never spoken as TTS.
  */
 export function parseChatCommand(text: string): ParsedChatCommand | null {
   const parts = text.trim().split(/\s+/).filter(Boolean)
@@ -120,9 +119,8 @@ function userRoleRank(flags: {
 }
 
 /**
- * Attempt to handle a chat message as a command.
- * Returns true when the message matched Chatvoice command syntax (whether or
- * not it was authorized / executed), so callers can skip TTS enqueue.
+ * Returns true when the message matched command syntax (whether or not it was
+ * authorized), so callers can skip TTS enqueue.
  */
 export async function tryHandleChatCommand(
   message: {

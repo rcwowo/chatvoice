@@ -22,6 +22,12 @@ import {
 
 const DEFAULT_MESSAGE_LIMIT = 60
 
+/**
+ * Messages parked while a room's third-party emote catalog loads, capped so a
+ * busy room can't buffer unbounded data.
+ */
+const MAX_PENDING_ROOM_MESSAGES = 200
+
 export type TwitchTimelineItem =
   | { kind: "chat"; message: TwitchChatMessage }
   | { kind: "system"; message: TwitchSystemMessage }
@@ -70,7 +76,6 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
     )
   }, [messageLimit])
 
-  // Stable log appender
   const appendLog = React.useCallback((text: string) => {
     setLogs((current) => [text, ...current].slice(0, 20))
   }, [])
@@ -181,6 +186,9 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
 
       const pending = pendingRoomMessagesRef.current.get(roomId) ?? []
       pending.push(message)
+      if (pending.length > MAX_PENDING_ROOM_MESSAGES) {
+        pending.splice(0, pending.length - MAX_PENDING_ROOM_MESSAGES)
+      }
       pendingRoomMessagesRef.current.set(roomId, pending)
     },
     [appendMessages, hydrateChatMessage]
@@ -324,7 +332,6 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
     [appendLog, flushPendingRoomMessages, hydrateChatMessage]
   )
 
-  // Lazily create the client with a stable handler
   const getClient = React.useCallback(() => {
     if (clientRef.current) return clientRef.current
 
@@ -450,7 +457,6 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
     queuePendingRoomMessage,
   ])
 
-  // Disconnect on unmount
   React.useEffect(() => {
     return () => {
       clientRef.current?.disconnect()
@@ -459,7 +465,6 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
 
   const startConnection = React.useCallback(
     (channel: string): Promise<string> => {
-      // Reject any previously pending connect
       if (pendingConnectRef.current) {
         pendingConnectRef.current.reject(new Error("New connection started"))
         pendingConnectRef.current = null

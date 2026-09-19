@@ -1,57 +1,18 @@
 import type { VoiceAssignment } from "@/lib/chatvoice-config"
+import {
+  ASSIGNMENTS_STORE,
+  openChatvoiceDB,
+  withChatvoiceStore,
+} from "@/lib/chatvoice-db"
 
-const DB_NAME = "chatvoice"
-const DB_VERSION = 1
-const STORE_NAME = "assignments"
-
-let dbPromise: Promise<IDBDatabase> | null = null
-
-function openDB(): Promise<IDBDatabase> {
-  if (dbPromise) return dbPromise
-
-  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
-
-    request.onupgradeneeded = () => {
-      const db = request.result
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: "userName" })
-        store.createIndex("lastSeenAt", "lastSeenAt", { unique: false })
-        store.createIndex("voiceProfileId", "voiceProfileId", {
-          unique: false,
-        })
-      }
-    }
-
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => {
-      dbPromise = null
-      reject(request.error)
-    }
-  })
-
-  return dbPromise
-}
+const STORE_NAME = ASSIGNMENTS_STORE
 
 function withStore<T>(
   mode: IDBTransactionMode,
   callback: (store: IDBObjectStore) => IDBRequest<T>
 ): Promise<T> {
-  return openDB().then(
-    (db) =>
-      new Promise<T>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, mode)
-        const store = tx.objectStore(STORE_NAME)
-        const request = callback(store)
-        request.onsuccess = () => resolve(request.result)
-        request.onerror = () => reject(request.error)
-      })
-  )
+  return withChatvoiceStore(STORE_NAME, mode, callback)
 }
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 
 export function getAssignment(
   userName: string
@@ -81,14 +42,10 @@ export function clearAssignments(): Promise<undefined> {
   return withStore("readwrite", (store) => store.clear())
 }
 
-/**
- * Bulk-import assignments (used by backup restore and migration).
- * Clears existing data first, then inserts all provided assignments.
- */
 export async function bulkPutAssignments(
   assignments: VoiceAssignment[]
 ): Promise<void> {
-  const db = await openDB()
+  const db = await openChatvoiceDB()
   return new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite")
     const store = tx.objectStore(STORE_NAME)
@@ -103,18 +60,13 @@ export async function bulkPutAssignments(
   })
 }
 
-/**
- * Returns a page of assignments sorted by lastSeenAt descending.
- * Uses a cursor on the lastSeenAt index walking in "prev" direction
- * for efficient pagination without loading everything into memory.
- */
 export async function getAssignmentPage(
   page: number,
   pageSize: number,
   excludeUserNames?: Set<string>,
   searchQuery?: string
 ): Promise<{ items: VoiceAssignment[]; total: number }> {
-  const db = await openDB()
+  const db = await openChatvoiceDB()
 
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly")
@@ -138,7 +90,6 @@ export async function getAssignmentPage(
 
       const assignment = cursor.value as VoiceAssignment
 
-      // Apply filters
       const excluded = excludeUserNames?.has(assignment.userName)
       const matchesSearch =
         !lowerQuery ||
@@ -161,10 +112,6 @@ export async function getAssignmentPage(
   })
 }
 
-/**
- * Migrate assignments from a Record (old localStorage format) into IndexedDB.
- * Only runs if the store is empty (first migration).
- */
 export async function migrateFromRecord(
   assignments: Record<string, VoiceAssignment>
 ): Promise<boolean> {

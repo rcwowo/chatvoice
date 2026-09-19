@@ -366,8 +366,7 @@ function PreviewButton({ profile }: { profile: VoiceProfile }) {
 
 /**
  * Defers rendering the (potentially huge) voice option list until the dropdown
- * is actually opened. This avoids mounting hundreds of Radix SelectItems per
- * profile row when the tab first appears.
+ * is actually opened, avoiding hundreds of mounted SelectItems per profile row.
  */
 function VoiceSelect({
   value,

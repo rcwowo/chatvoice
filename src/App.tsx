@@ -26,7 +26,6 @@ function DashboardLayout() {
   const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [changelogOpen, setChangelogOpen] = React.useState(false)
 
-  // Show a toast when the app version has changed since last visit
   React.useEffect(() => {
     if (!ready || needsOnboarding) return
 
