@@ -2,7 +2,9 @@ import {
   buildSpeechText,
   normalizeLookupValue,
   type SoundEffect,
+  type WordReplacement,
 } from "@/lib/chatvoice-config"
+import { applyWordReplacements } from "@/lib/moderation"
 
 // Tokens use the form `(name)`; unknown parentheses are left untouched.
 
@@ -39,6 +41,7 @@ export function buildMessageSegments(options: {
   channel: string
   sounds: SoundEffect[]
   canUseSound: (sound: SoundEffect) => boolean
+  replacements?: WordReplacement[]
 }): BuiltMessageSegments {
   const { template, message, userName, displayName, channel } = options
   const soundByName = new Map<string, SoundEffect>()
@@ -75,7 +78,10 @@ export function buildMessageSegments(options: {
   let hasSound = false
 
   const pushSpeech = (value: string) => {
-    const collapsed = value.replace(/\s+/g, " ").trim()
+    // Sound tokens have already become private-use markers, so replacements
+    // can never clobber a sound effect name.
+    const moderated = applyWordReplacements(value, options.replacements ?? [])
+    const collapsed = moderated.replace(/\s+/g, " ").trim()
     if (collapsed) {
       segments.push({ kind: "speech", text: collapsed })
     }

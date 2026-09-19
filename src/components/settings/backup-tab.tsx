@@ -62,7 +62,7 @@ export function BackupTab() {
           <li>· Twitch channel settings</li>
           <li>· Voice profile library</li>
           <li>· Randomized user assignments</li>
-          <li>· Filters, limits, and blocklists</li>
+          <li>· Filters, limits, blocklists, and word replacements</li>
           <li>· Chat command settings and whitelist</li>
           <li>· Sound effect settings and audio files</li>
           <li>· Schema version metadata for migrations</li>

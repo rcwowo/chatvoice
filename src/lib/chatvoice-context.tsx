@@ -27,6 +27,7 @@ import {
   buildMessageSegments,
   type MessageSoundSegment,
 } from "@/lib/sound-effects"
+import { applyWordReplacements } from "@/lib/moderation"
 import { getSoundEffectAudio } from "@/lib/sound-effects-db"
 import {
   canRunChatCommand,
@@ -416,6 +417,7 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
               message.userName,
               config.commands.whitelist
             ),
+          replacements: config.playback.wordReplacements,
         })
 
         nextQueueItems.push({
@@ -756,6 +758,12 @@ export function shouldSpeakMessage(
     stripEmotes: config.playback.stripEmotes,
     emotes: message.emotes,
   })
+  // Length limits apply to what will actually be spoken, so a message that is
+  // entirely removed by replacements is never queued as silence.
+  const speakable = applyWordReplacements(
+    sanitized,
+    config.playback.wordReplacements
+  )
   const normalizedUser = normalizeLookupValue(message.userName)
   const blockedUsernames = new Set(
     config.playback.blockedUsers.map(normalizeLookupValue)
@@ -798,15 +806,15 @@ export function shouldSpeakMessage(
     return { allowed: false, text: sanitized }
   }
 
-  if (sanitized.length < config.playback.minMessageLength) {
+  if (speakable.length < config.playback.minMessageLength) {
     return { allowed: false, text: sanitized }
   }
 
-  if (sanitized.length > config.playback.maxMessageLength) {
+  if (speakable.length > config.playback.maxMessageLength) {
     return { allowed: false, text: sanitized }
   }
 
-  return { allowed: sanitized.length > 0, text: sanitized }
+  return { allowed: speakable.length > 0, text: sanitized }
 }
 
 export function parseLines(value: string) {

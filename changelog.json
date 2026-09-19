@@ -4,7 +4,8 @@
         "date": "2026-09-21",
         "items": [
             "Added a sharable commands page.",
-            "Added the ability for chatters to insert sound effects in their messages."
+            "Added the ability for chatters to insert sound effects in their messages.",
+            "Added word/phrase replacements to censor or remove certain words before they're spoken."
         ]
     },
     {

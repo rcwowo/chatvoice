@@ -37,6 +37,13 @@ const messageTimestampFormatSchema = z
   .enum(["24-hour", "12-hour", "12-hour-meridiem", "none"])
   .default("24-hour")
 
+const wordReplacementSchema = z.object({
+  id: z.string().min(1),
+  from: z.string(),
+  to: z.string().default(""),
+  enabled: z.boolean().default(true),
+})
+
 const playbackSchema = z.object({
   enabled: z.boolean(),
   queueEnabled: z.boolean().default(true),
@@ -60,6 +67,7 @@ const playbackSchema = z.object({
   chatScale: z.number().int().min(75).max(200).default(100),
   blockedUsers: z.array(z.string()),
   blockedTerms: z.array(z.string()),
+  wordReplacements: z.array(wordReplacementSchema).default([]),
 })
 
 export const commandRoleSchema = z.enum([
@@ -153,6 +161,7 @@ export type MessageTimestampFormat = z.infer<
   typeof messageTimestampFormatSchema
 >
 export type PlaybackConfig = z.infer<typeof playbackSchema>
+export type WordReplacement = z.infer<typeof wordReplacementSchema>
 export type CommandRole = z.infer<typeof commandRoleSchema>
 export type CommandSetting = z.infer<typeof commandSettingSchema>
 export type SoundEffect = z.infer<typeof soundEffectSchema>
@@ -216,6 +225,7 @@ export function createDefaultConfig(): AppConfig {
       chatScale: 100,
       blockedUsers: [],
       blockedTerms: [],
+      wordReplacements: [],
     },
     commands: {
       whitelist: [],
@@ -637,11 +647,28 @@ function normalizeConfig(config: AppConfig): AppConfig {
     ...config,
     updatedAt: config.updatedAt || new Date().toISOString(),
     twitch: normalizeTwitchConfig(config.twitch),
+    playback: {
+      ...config.playback,
+      wordReplacements: normalizeWordReplacementList(
+        config.playback.wordReplacements
+      ),
+    },
     voiceProfiles: nextVoiceProfiles,
     soundEffects: normalizeSoundEffectList(config.soundEffects),
     assignments:
       Object.keys(nextAssignments).length > 0 ? nextAssignments : undefined,
   }
+}
+
+function normalizeWordReplacementList(
+  replacements: WordReplacement[]
+): WordReplacement[] {
+  return (replacements ?? []).map((replacement, index) => ({
+    ...replacement,
+    id: replacement.id || `replacement-${index + 1}`,
+    from: replacement.from.trim(),
+    to: replacement.to,
+  }))
 }
 
 function normalizeSoundEffectList(soundEffects: SoundEffect[]): SoundEffect[] {
