@@ -443,12 +443,22 @@ function parseTmiTimestamp(tags: Map<string, string>): string {
 }
 
 function decodeTagValue(value: string): string {
-  return value
-    .replace(/\\s/g, " ")
-    .replace(/\\:/g, ";")
-    .replace(/\\r/g, "\r")
-    .replace(/\\n/g, "\n")
-    .replace(/\\\\/g, "\\")
+  return value.replace(/\\(.)/g, (match, char: string) => {
+    switch (char) {
+      case "s":
+        return " "
+      case ":":
+        return ";"
+      case "r":
+        return "\r"
+      case "n":
+        return "\n"
+      case "\\":
+        return "\\"
+      default:
+        return match
+    }
+  })
 }
 
 function getUserNoticeEvent(msgId: string): TwitchSystemMessage["event"] {

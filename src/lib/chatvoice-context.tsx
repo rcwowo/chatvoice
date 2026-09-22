@@ -739,6 +739,27 @@ export function ChatvoiceProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+const blockedLookupCache = new WeakMap<
+  AppConfig,
+  { blockedUsernames: Set<string>; blockedTerms: string[] }
+>()
+
+function getBlockedLookups(config: AppConfig) {
+  let cached = blockedLookupCache.get(config)
+  if (!cached) {
+    cached = {
+      blockedUsernames: new Set(
+        config.playback.blockedUsers.map(normalizeLookupValue)
+      ),
+      blockedTerms: config.playback.blockedTerms.map((item) =>
+        item.toLowerCase()
+      ),
+    }
+    blockedLookupCache.set(config, cached)
+  }
+  return cached
+}
+
 export function shouldSpeakMessage(
   message: {
     userName: string
@@ -765,12 +786,7 @@ export function shouldSpeakMessage(
     config.playback.wordReplacements
   )
   const normalizedUser = normalizeLookupValue(message.userName)
-  const blockedUsernames = new Set(
-    config.playback.blockedUsers.map(normalizeLookupValue)
-  )
-  const blockedTerms = config.playback.blockedTerms.map((item) =>
-    item.toLowerCase()
-  )
+  const { blockedUsernames, blockedTerms } = getBlockedLookups(config)
 
   if (!config.playback.queueEnabled) {
     return { allowed: false, text: sanitized }
@@ -824,6 +840,27 @@ export function parseLines(value: string) {
     .filter(Boolean)
 }
 
+const timestampFormatters: Record<
+  Exclude<MessageTimestampFormat, "none">,
+  Intl.DateTimeFormat
+> = {
+  "24-hour": new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }),
+  "12-hour": new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }),
+  "12-hour-meridiem": new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }),
+}
+
 export function formatMessageTimestamp(
   value: string,
   format: MessageTimestampFormat
@@ -837,31 +874,24 @@ export function formatMessageTimestamp(
     return value
   }
 
-  if (format === "24-hour") {
-    return new Intl.DateTimeFormat(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(date)
+  if (format === "12-hour") {
+    return timestampFormatters["12-hour-meridiem"]
+      .formatToParts(date)
+      .filter((part) => part.type !== "dayPeriod")
+      .map((part) => part.value)
+      .join("")
+      .trim()
   }
 
-  const formatter = new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  })
-
-  if (format === "12-hour-meridiem") {
-    return formatter.format(date)
-  }
-
-  return formatter
-    .formatToParts(date)
-    .filter((part) => part.type !== "dayPeriod")
-    .map((part) => part.value)
-    .join("")
-    .trim()
+  return timestampFormatters[format].format(date)
 }
+
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+})
 
 export function formatTimestamp(value: string) {
   const date = new Date(value)
@@ -869,10 +899,5 @@ export function formatTimestamp(value: string) {
     return value
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date)
+  return dateTimeFormatter.format(date)
 }

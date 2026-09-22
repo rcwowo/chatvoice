@@ -234,7 +234,15 @@ function mergeThirdPartyEmotes(
 }
 
 function hasOverlap(ranges: TextRange[], start: number, end: number) {
-  return ranges.some((range) => start <= range.end && end >= range.start)
+  for (const range of ranges) {
+    if (range.start > end) {
+      return false
+    }
+    if (start <= range.end && end >= range.start) {
+      return true
+    }
+  }
+  return false
 }
 
 function normalizeRanges(ranges: TextRange[]): TextRange[] {
