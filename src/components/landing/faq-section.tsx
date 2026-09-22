@@ -27,7 +27,7 @@ const FAQ_ITEMS = [
   {
     question: "How does it compare to Speechchat?",
     answer:
-      "Speechchat is a webapp what inspired the creation of Chatvoice. The main difference is that Chatvoice allows you to assign or auto-assign specific voices to different chatters, whereas Speechchat only uses one voice for all chatters.",
+      "Speechchat is a webapp that inspired the creation of Chatvoice. The main difference is that Chatvoice allows you to assign or auto-assign specific voices to different chatters, whereas Speechchat only uses one voice for all chatters.",
   },
 ] as const
 
