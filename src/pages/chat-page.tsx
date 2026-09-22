@@ -662,13 +662,13 @@ export function ChatPage() {
                         </p>
                         <Badge
                           variant="outline"
-                          className="h-4 max-w-[11rem] shrink-0 truncate px-1.5 text-[10px] leading-none"
+                          className="h-4 max-w-44 shrink-0 truncate px-1.5 text-[10px] leading-none"
                           title={item.profile.label}
                         >
                           {item.profile.label}
                         </Badge>
                       </div>
-                      <p className="mt-1.5 text-[11px] leading-snug break-words text-muted-foreground/50">
+                      <p className="mt-1.5 text-[11px] leading-snug wrap-break-word text-muted-foreground/50">
                         {item.text}
                       </p>
                     </div>
