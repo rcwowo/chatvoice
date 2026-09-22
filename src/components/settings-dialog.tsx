@@ -5,6 +5,7 @@ import {
   ShieldIcon,
   TerminalIcon,
   UsersIcon,
+  Volume2Icon,
   WrenchIcon,
 } from "lucide-react"
 
@@ -14,6 +15,7 @@ import { VoicesTab } from "@/components/settings/voices-tab"
 import { ModerationTab } from "@/components/settings/moderation-tab"
 import { UsersTab } from "@/components/settings/users-tab"
 import { CommandsTab } from "@/components/settings/commands-tab"
+import { SoundsTab } from "@/components/settings/sounds-tab"
 import { BackupTab } from "@/components/settings/backup-tab"
 import { cn } from "@/lib/utils"
 
@@ -37,16 +39,13 @@ function useCompactSettings() {
   return isCompact
 }
 
-// ---------------------------------------------------------------------------
-// Settings tab IDs
-// ---------------------------------------------------------------------------
-
 type SettingsTab =
   | "general"
   | "voices"
   | "moderation"
   | "users"
   | "commands"
+  | "sounds"
   | "backup"
 
 const SETTINGS_TABS: {
@@ -58,13 +57,50 @@ const SETTINGS_TABS: {
   { id: "voices", label: "Voices", icon: AudioLinesIcon },
   { id: "moderation", label: "Moderation", icon: ShieldIcon },
   { id: "users", label: "Users", icon: UsersIcon },
+  { id: "sounds", label: "Sounds", icon: Volume2Icon },
   { id: "commands", label: "Commands", icon: TerminalIcon },
-  { id: "backup", label: "Backup", icon: DatabaseIcon },
 ]
 
-// ---------------------------------------------------------------------------
-// Settings Dialog (exported)
-// ---------------------------------------------------------------------------
+const DATA_TABS: {
+  id: SettingsTab
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+}[] = [{ id: "backup", label: "Backup", icon: DatabaseIcon }]
+
+function SettingsTabButton({
+  tab,
+  isCompact,
+  active,
+  onSelect,
+}: {
+  tab: {
+    id: SettingsTab
+    label: string
+    icon: React.ComponentType<{ className?: string }>
+  }
+  isCompact: boolean
+  active: boolean
+  onSelect: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      title={tab.label}
+      aria-label={tab.label}
+      className={cn(
+        "flex items-center rounded-lg py-2 text-sm transition-colors",
+        isCompact ? "justify-center px-2" : "gap-2.5 px-2.5 text-left",
+        active
+          ? "bg-background font-medium text-foreground shadow-sm"
+          : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+      )}
+    >
+      <tab.icon className="size-4 shrink-0" />
+      {!isCompact && tab.label}
+    </button>
+  )
+}
 
 export function SettingsDialog({
   open,
@@ -102,25 +138,25 @@ export function SettingsDialog({
             )}
             <div className="flex flex-col gap-0.5">
               {SETTINGS_TABS.map((tab) => (
-                <button
+                <SettingsTabButton
                   key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  title={tab.label}
-                  aria-label={tab.label}
-                  className={cn(
-                    "flex items-center rounded-lg py-2 text-sm transition-colors",
-                    isCompact
-                      ? "justify-center px-2"
-                      : "gap-2.5 px-2.5 text-left",
-                    activeTab === tab.id
-                      ? "bg-background font-medium text-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
-                  )}
-                >
-                  <tab.icon className="size-4 shrink-0" />
-                  {!isCompact && tab.label}
-                </button>
+                  tab={tab}
+                  isCompact={isCompact}
+                  active={activeTab === tab.id}
+                  onSelect={() => setActiveTab(tab.id)}
+                />
+              ))}
+            </div>
+
+            <div className="mt-auto flex flex-col gap-0.5 border-t border-border pt-3">
+              {DATA_TABS.map((tab) => (
+                <SettingsTabButton
+                  key={tab.id}
+                  tab={tab}
+                  isCompact={isCompact}
+                  active={activeTab === tab.id}
+                  onSelect={() => setActiveTab(tab.id)}
+                />
               ))}
             </div>
           </nav>
@@ -130,9 +166,7 @@ export function SettingsDialog({
             <div
               className={cn(
                 !isCompact && "mt-6 p-6",
-                isCompact &&
-                  activeTab === "general" &&
-                  "mt-6 px-4 pb-4 pt-6",
+                isCompact && activeTab === "general" && "mt-6 px-4 pt-6 pb-4",
                 isCompact && activeTab !== "general" && "p-4"
               )}
             >
@@ -140,6 +174,7 @@ export function SettingsDialog({
               {activeTab === "voices" && <VoicesTab />}
               {activeTab === "moderation" && <ModerationTab />}
               {activeTab === "users" && <UsersTab />}
+              {activeTab === "sounds" && <SoundsTab />}
               {activeTab === "commands" && <CommandsTab />}
               {activeTab === "backup" && <BackupTab />}
             </div>

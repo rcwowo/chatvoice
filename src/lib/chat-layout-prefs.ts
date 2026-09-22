@@ -44,7 +44,10 @@ export function saveChatLayoutPrefs(prefs: ChatLayoutPrefs) {
 
   const normalized = chatLayoutPrefsSchema.parse({
     ...prefs,
-    queueCollapsed: prefs.chatCollapsed && prefs.queueCollapsed ? false : prefs.queueCollapsed,
+    queueCollapsed:
+      prefs.chatCollapsed && prefs.queueCollapsed
+        ? false
+        : prefs.queueCollapsed,
   })
 
   window.localStorage.setItem(

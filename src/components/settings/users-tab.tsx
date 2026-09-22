@@ -8,10 +8,7 @@ import {
   Trash2Icon,
 } from "lucide-react"
 
-import {
-  useChatvoiceSettings,
-  formatTimestamp,
-} from "@/lib/chatvoice-context"
+import { useChatvoiceSettings, formatTimestamp } from "@/lib/chatvoice-context"
 import type { ChatvoiceConfigContextValue } from "@/lib/chatvoice-context"
 import {
   normalizeLookupValue,
@@ -63,7 +60,6 @@ export function UsersTab() {
     [config.playback.blockedUsers]
   )
 
-  // Load a page of assignments from IndexedDB
   React.useEffect(() => {
     let cancelled = false
 
@@ -78,7 +74,6 @@ export function UsersTab() {
     }
   }, [page, blockedSet, searchQuery, refreshKey])
 
-  // Reset page when search changes
   React.useEffect(() => {
     setPage(0)
   }, [searchQuery])
@@ -158,7 +153,7 @@ export function UsersTab() {
 
       {/* Search */}
       <div className="relative">
-        <SearchIcon className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
+        <SearchIcon className="absolute top-2 left-2.5 size-3.5 text-muted-foreground" />
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -208,8 +203,8 @@ export function UsersTab() {
       {rows.total > PAGE_SIZE && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
-            {rows.total} user{rows.total !== 1 ? "s" : ""} · page{" "}
-            {page + 1} of {totalPages}
+            {rows.total} user{rows.total !== 1 ? "s" : ""} · page {page + 1} of{" "}
+            {totalPages}
           </span>
           <div className="flex gap-1">
             <Button
@@ -296,8 +291,7 @@ function AssignmentRow({
                   ...current.playback,
                   blockedUsers: [
                     ...current.playback.blockedUsers.filter(
-                      (u) =>
-                        normalizeLookupValue(u) !== assignment.userName
+                      (u) => normalizeLookupValue(u) !== assignment.userName
                     ),
                     assignment.userName,
                   ],

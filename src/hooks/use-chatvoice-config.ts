@@ -8,10 +8,9 @@ import {
   loadConfig,
   saveConfig,
 } from "@/lib/chatvoice-config"
-import {
-  bulkPutAssignments,
-  migrateFromRecord,
-} from "@/lib/assignments-db"
+import { bulkPutAssignments, migrateFromRecord } from "@/lib/assignments-db"
+import { base64ToBlob } from "@/lib/audio-backup"
+import { bulkPutSoundEffectAudio } from "@/lib/sound-effects-db"
 
 export function useChatvoiceConfig() {
   const [config, setConfig] = React.useState<AppConfig>(() =>
@@ -24,7 +23,6 @@ export function useChatvoiceConfig() {
     const isFirstRun = !hasStoredConfig()
     const loaded = loadConfig()
 
-    // Migrate old assignments from localStorage → IndexedDB (one-time)
     const legacyAssignments = loaded.assignments
     const cleanConfig: AppConfig = { ...loaded }
     delete cleanConfig.assignments
@@ -33,7 +31,6 @@ export function useChatvoiceConfig() {
       if (legacyAssignments && Object.keys(legacyAssignments).length > 0) {
         const migrated = await migrateFromRecord(legacyAssignments)
         if (migrated) {
-          // Remove assignments from localStorage since they now live in IDB
           saveConfig(cleanConfig)
         }
       }
@@ -60,23 +57,36 @@ export function useChatvoiceConfig() {
     []
   )
 
-  const restoreBackup = React.useCallback(
-    async (payload: string) => {
-      const result = importConfigBackup(payload)
-      saveConfig(result.config)
+  const restoreBackup = React.useCallback(async (payload: string) => {
+    const result = importConfigBackup(payload)
+    saveConfig(result.config)
 
-      // Restore assignments into IndexedDB
-      if (result.assignments.length > 0) {
-        await bulkPutAssignments(result.assignments)
-      }
+    // Only replace a store when the backup contains that section; otherwise
+    // leave existing IndexedDB data untouched.
+    if (result.hasAssignments) {
+      await bulkPutAssignments(result.assignments)
+    }
 
-      const loaded = loadConfig()
-      const { assignments: _, ...cleanLoaded } = loaded
-      setConfig(cleanLoaded as AppConfig)
-      return result.config
-    },
-    []
-  )
+    if (result.hasSoundEffects) {
+      await bulkPutSoundEffectAudio(
+        result.soundEffectAudio.map((entry) => {
+          const blob = base64ToBlob(entry.data, entry.mimeType)
+          return {
+            id: entry.id,
+            blob,
+            fileName: entry.fileName,
+            mimeType: entry.mimeType,
+            size: blob.size,
+          }
+        })
+      )
+    }
+
+    const loaded = loadConfig()
+    const { assignments: _, ...cleanLoaded } = loaded
+    setConfig(cleanLoaded as AppConfig)
+    return result.config
+  }, [])
 
   const completeOnboarding = React.useCallback(() => {
     setNeedsOnboarding(false)

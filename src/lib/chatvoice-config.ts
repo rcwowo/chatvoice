@@ -1,6 +1,11 @@
 import { z } from "zod"
 import { getAssignment, putAssignment } from "@/lib/assignments-db"
 import { stripMessageEmotes } from "@/lib/chat-emotes"
+import {
+  normalizeSoundEffectName,
+  uniqueSoundEffectName,
+} from "@/lib/sound-effect-name"
+import type { SoundEffectAudioBackup } from "@/lib/audio-backup"
 import type { TwitchEmote } from "@/lib/twitch-chat"
 
 export const CHATVOICE_STORAGE_KEY = "chatvoice::config"
@@ -32,6 +37,13 @@ const messageTimestampFormatSchema = z
   .enum(["24-hour", "12-hour", "12-hour-meridiem", "none"])
   .default("24-hour")
 
+const wordReplacementSchema = z.object({
+  id: z.string().min(1),
+  from: z.string(),
+  to: z.string().default(""),
+  enabled: z.boolean().default(true),
+})
+
 const playbackSchema = z.object({
   enabled: z.boolean(),
   queueEnabled: z.boolean().default(true),
@@ -55,6 +67,7 @@ const playbackSchema = z.object({
   chatScale: z.number().int().min(75).max(200).default(100),
   blockedUsers: z.array(z.string()),
   blockedTerms: z.array(z.string()),
+  wordReplacements: z.array(wordReplacementSchema).default([]),
 })
 
 export const commandRoleSchema = z.enum([
@@ -68,6 +81,14 @@ export const commandRoleSchema = z.enum([
 const commandSettingSchema = z.object({
   enabled: z.boolean().default(false),
   minRole: commandRoleSchema.default("moderator"),
+})
+
+const soundEffectSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  enabled: z.boolean().default(true),
+  minRole: commandRoleSchema.default("everyone"),
+  volume: z.number().min(0).max(1).default(1),
 })
 
 const DEFAULT_MOD_COMMAND = {
@@ -112,25 +133,38 @@ const appConfigSchema = z.object({
     newVoice: DEFAULT_EVERYONE_COMMAND,
   }),
   voiceProfiles: z.array(voiceProfileSchema).min(1),
+  soundEffects: z.array(soundEffectSchema).default([]),
   // Assignments are now stored in IndexedDB. This field is only used during
   // backup/restore and migration. It is NOT kept in the runtime config.
   assignments: z.record(z.string(), voiceAssignmentSchema).optional(),
 })
+const soundEffectAudioBackupSchema = z.object({
+  id: z.string().min(1),
+  fileName: z.string(),
+  mimeType: z.string(),
+  data: z.string(),
+})
+
 const backupEnvelopeSchema = z.object({
   app: z.literal("chatvoice"),
   appVersion: z.string().min(1),
   exportedAt: z.string().min(1),
   schemaVersion: z.number().int().positive(),
   data: z.unknown(),
+  soundEffects: z.array(soundEffectAudioBackupSchema).optional(),
 })
 
 export type VoiceProfile = z.infer<typeof voiceProfileSchema>
 export type VoiceAssignment = z.infer<typeof voiceAssignmentSchema>
 export type QueueMode = z.infer<typeof queueModeSchema>
-export type MessageTimestampFormat = z.infer<typeof messageTimestampFormatSchema>
+export type MessageTimestampFormat = z.infer<
+  typeof messageTimestampFormatSchema
+>
 export type PlaybackConfig = z.infer<typeof playbackSchema>
+export type WordReplacement = z.infer<typeof wordReplacementSchema>
 export type CommandRole = z.infer<typeof commandRoleSchema>
 export type CommandSetting = z.infer<typeof commandSettingSchema>
+export type SoundEffect = z.infer<typeof soundEffectSchema>
 export type CommandsConfig = z.infer<typeof commandsSchema>
 export type TwitchConfig = z.infer<typeof twitchSchema>
 export type AppConfig = z.infer<typeof appConfigSchema>
@@ -153,7 +187,7 @@ const DEFAULT_VOICE_PROFILES: VoiceProfile[] = [
     pitch: -10,
     volume: 0,
     enabled: true,
-  }
+  },
 ]
 
 export function createDefaultConfig(): AppConfig {
@@ -191,6 +225,7 @@ export function createDefaultConfig(): AppConfig {
       chatScale: 100,
       blockedUsers: [],
       blockedTerms: [],
+      wordReplacements: [],
     },
     commands: {
       whitelist: [],
@@ -201,6 +236,7 @@ export function createDefaultConfig(): AppConfig {
       newVoice: { ...DEFAULT_EVERYONE_COMMAND },
     },
     voiceProfiles: DEFAULT_VOICE_PROFILES,
+    soundEffects: [],
   }
 }
 
@@ -221,7 +257,14 @@ export function loadConfig(): AppConfig {
 
   try {
     return migrateConfig(JSON.parse(raw))
-  } catch {
+  } catch (error) {
+    // Preserve the unreadable payload so a later save can't destroy it.
+    try {
+      window.localStorage.setItem(`${CHATVOICE_STORAGE_KEY}:corrupt`, raw)
+    } catch {
+      // Storage full or blocked; nothing more we can do here.
+    }
+    console.error("Chatvoice config was unreadable; using defaults.", error)
     return createDefaultConfig()
   }
 }
@@ -240,13 +283,12 @@ export function saveConfig(config: AppConfig) {
 
 export function exportConfigBackup(
   config: AppConfig,
-  assignments: VoiceAssignment[]
+  assignments: VoiceAssignment[],
+  soundEffectAudio: SoundEffectAudioBackup[] = []
 ): string {
   const configWithAssignments = {
     ...normalizeConfig(config),
-    assignments: Object.fromEntries(
-      assignments.map((a) => [a.userName, a])
-    ),
+    assignments: Object.fromEntries(assignments.map((a) => [a.userName, a])),
   }
 
   const envelope: BackupEnvelope = {
@@ -255,30 +297,45 @@ export function exportConfigBackup(
     exportedAt: new Date().toISOString(),
     schemaVersion: CHATVOICE_SCHEMA_VERSION,
     data: configWithAssignments,
+    soundEffects: soundEffectAudio.length > 0 ? soundEffectAudio : undefined,
   }
 
   return JSON.stringify(envelope, null, 2)
 }
 
 /**
- * Parse a backup payload. Returns the config and extracted assignments
- * separately so the caller can persist assignments into IndexedDB.
+ * Parse a backup payload. The `has*` flags distinguish "section present"
+ * (replace the store) from "section absent" (leave the store untouched) so
+ * config-only restores never wipe IndexedDB data.
  */
 export function importConfigBackup(payload: string): {
   config: AppConfig
   assignments: VoiceAssignment[]
+  soundEffectAudio: SoundEffectAudioBackup[]
+  hasAssignments: boolean
+  hasSoundEffects: boolean
 } {
   const parsed = JSON.parse(payload)
+  const envelopeResult = backupEnvelopeSchema.safeParse(parsed)
+  const hasSoundEffects = envelopeResult.success
+    ? envelopeResult.data.soundEffects != null
+    : false
+  const soundEffectAudio = envelopeResult.success
+    ? (envelopeResult.data.soundEffects ?? [])
+    : []
   const config = migrateConfig(parsed)
+  const hasAssignments = config.assignments != null
   const assignments = config.assignments
     ? Object.values(config.assignments)
     : []
 
-  // Strip assignments from the runtime config
   const { assignments: _, ...cleanConfig } = config
   return {
     config: cleanConfig as AppConfig,
     assignments,
+    soundEffectAudio,
+    hasAssignments,
+    hasSoundEffects,
   }
 }
 
@@ -354,8 +411,6 @@ export async function ensureVoiceAssignment(
   const now = new Date().toISOString()
   const existing = await getAssignment(normalizedUserName)
 
-  // When autoAssignVoices is disabled, only update existing assignments or
-  // fall back to the default voice (never create a random assignment).
   const autoAssign = config.playback.autoAssignVoices
 
   if (
@@ -373,10 +428,12 @@ export async function ensureVoiceAssignment(
   }
 
   if (!autoAssign) {
-    // Use the configured default voice, or fall back to first enabled profile
     const defaultId =
       config.playback.defaultVoiceProfileId &&
-      hasVoiceProfile(config.voiceProfiles, config.playback.defaultVoiceProfileId)
+      hasVoiceProfile(
+        config.voiceProfiles,
+        config.playback.defaultVoiceProfileId
+      )
         ? config.playback.defaultVoiceProfileId
         : pickRandomVoiceProfileId(config.voiceProfiles)
 
@@ -384,8 +441,7 @@ export async function ensureVoiceAssignment(
       return { assignment: null, created: false }
     }
 
-    // Return a transient assignment (not persisted) so the voice plays
-    // but we don't store a permanent mapping for this user.
+    // Transient assignment: not persisted, so no permanent mapping is stored.
     return {
       assignment: {
         userName: normalizedUserName,
@@ -517,7 +573,6 @@ export type ChannelSearchParamResult =
   | { kind: "invalid" }
   | { kind: "valid"; channel: string }
 
-/** Parse `?channel=` from a query string (e.g. deep links from other apps). */
 export function parseChannelSearchParam(
   search: string = typeof window !== "undefined" ? window.location.search : ""
 ): ChannelSearchParamResult {
@@ -566,8 +621,6 @@ function normalizeConfig(config: AppConfig): AppConfig {
       : DEFAULT_VOICE_PROFILES
   const fallbackVoiceProfileId = pickRandomVoiceProfileId(nextVoiceProfiles)
 
-  // Assignments are optional - they only appear during backup/restore.
-  // Normalize them if present so the backup data is clean.
   const rawAssignments = config.assignments ?? {}
   const nextAssignments = Object.fromEntries(
     Object.entries(rawAssignments).map(([key, assignment]) => {
@@ -594,11 +647,41 @@ function normalizeConfig(config: AppConfig): AppConfig {
     ...config,
     updatedAt: config.updatedAt || new Date().toISOString(),
     twitch: normalizeTwitchConfig(config.twitch),
+    playback: {
+      ...config.playback,
+      wordReplacements: normalizeWordReplacementList(
+        config.playback.wordReplacements
+      ),
+    },
     voiceProfiles: nextVoiceProfiles,
-    assignments: Object.keys(nextAssignments).length > 0
-      ? nextAssignments
-      : undefined,
+    soundEffects: normalizeSoundEffectList(config.soundEffects),
+    assignments:
+      Object.keys(nextAssignments).length > 0 ? nextAssignments : undefined,
   }
+}
+
+function normalizeWordReplacementList(
+  replacements: WordReplacement[]
+): WordReplacement[] {
+  return (replacements ?? []).map((replacement, index) => ({
+    ...replacement,
+    id: replacement.id || `replacement-${index + 1}`,
+    from: replacement.from.trim(),
+    to: replacement.to,
+  }))
+}
+
+function normalizeSoundEffectList(soundEffects: SoundEffect[]): SoundEffect[] {
+  const seen = new Set<string>()
+
+  return soundEffects.map((soundEffect, index) => {
+    const base =
+      normalizeSoundEffectName(soundEffect.name) || `sound_${index + 1}`
+    const name = uniqueSoundEffectName(base, seen)
+    seen.add(name)
+
+    return { ...soundEffect, name }
+  })
 }
 
 function hasVoiceProfile(

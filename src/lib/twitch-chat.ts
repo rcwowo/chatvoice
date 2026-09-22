@@ -1,17 +1,7 @@
 /**
- * Browser-native Twitch IRC client over WebSocket.
- *
- * Connects anonymously (read-only) to `wss://irc-ws.chat.twitch.tv:443`
- * using the `justinfan` convention. Requests `twitch.tv/tags` and
- * `twitch.tv/commands` capabilities so every PRIVMSG carries full TMI tags
- * (display-name, color, badges, etc.).
- *
- * Zero external dependencies - uses the native browser WebSocket API.
+ * Anonymous (justinfan), read-only Twitch IRC client over WebSocket with
+ * tags/commands capabilities enabled.
  */
-
-// ---------------------------------------------------------------------------
-// Public types
-// ---------------------------------------------------------------------------
 
 export type TwitchBadge = {
   set: string
@@ -62,7 +52,13 @@ export type TwitchSystemMessage = {
   details: string | null
   emotes: TwitchEmote[]
   receivedAt: string
-  event: "subscription" | "raid" | "announcement" | "connection" | "notice" | "status"
+  event:
+    | "subscription"
+    | "raid"
+    | "announcement"
+    | "connection"
+    | "notice"
+    | "status"
   level: "info" | "success" | "warning" | "error"
   accentColor: string | null
 }
@@ -90,18 +86,10 @@ export type TwitchChatEvent =
 
 export type TwitchChatEventHandler = (event: TwitchChatEvent) => void
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 const TWITCH_WS_URL = "wss://irc-ws.chat.twitch.tv:443"
 const ANONYMOUS_NICK = `justinfan${Math.floor(10000 + Math.random() * 90000)}`
 const PING_TIMEOUT_MS = 320_000 // expect a PING within ~5 min
 const RECONNECT_DELAY_MS = 3_000
-
-// ---------------------------------------------------------------------------
-// Client
-// ---------------------------------------------------------------------------
 
 export class TwitchChatClient {
   private ws: WebSocket | null = null
@@ -115,7 +103,6 @@ export class TwitchChatClient {
     this.handler = handler
   }
 
-  /** Connect to a Twitch channel (anonymous read-only). */
   connect(channel: string) {
     this.disconnect()
     this.intentionalClose = false
@@ -167,7 +154,6 @@ export class TwitchChatClient {
     })
   }
 
-  /** Cleanly disconnect. */
   disconnect() {
     this.intentionalClose = true
     this.clearTimers()
@@ -177,31 +163,23 @@ export class TwitchChatClient {
     }
   }
 
-  /** Whether there is an active WebSocket connection. */
   get isConnected() {
     return this.ws?.readyState === WebSocket.OPEN
   }
 
-  // -----------------------------------------------------------------------
-  // IRC line handling
-  // -----------------------------------------------------------------------
-
   private handleLine(raw: string) {
-    // PING keep-alive
     if (raw.startsWith("PING")) {
       this.ws?.send(raw.replace("PING", "PONG"))
       this.resetPingTimer()
       return
     }
 
-    // Successful join / welcome
     if (raw.includes("001")) {
       this.handler({ type: "connected" })
       this.handler({ type: "log", text: `Joined #${this.channel}` })
       return
     }
 
-    // ROOMSTATE - channel metadata including room-id, sent on join and updates
     if (raw.includes(" ROOMSTATE ")) {
       const state = parseRoomState(raw)
       if (state) {
@@ -210,7 +188,6 @@ export class TwitchChatClient {
       return
     }
 
-    // PRIVMSG - chat message
     if (raw.includes("PRIVMSG")) {
       const message = parsePrivmsg(raw)
       if (message) {
@@ -219,7 +196,6 @@ export class TwitchChatClient {
       return
     }
 
-    // USERNOTICE - subscriptions, gift subs, raids, etc.
     if (raw.includes(" USERNOTICE ")) {
       const message = parseUserNotice(raw)
       if (message) {
@@ -228,7 +204,6 @@ export class TwitchChatClient {
       return
     }
 
-    // NOTICE - e.g. "No such channel"
     if (raw.includes("NOTICE")) {
       const noticeMessage = parseNotice(raw)
       if (noticeMessage) {
@@ -240,10 +215,6 @@ export class TwitchChatClient {
       }
     }
   }
-
-  // -----------------------------------------------------------------------
-  // Timers
-  // -----------------------------------------------------------------------
 
   private resetPingTimer() {
     if (this.pingTimer) clearTimeout(this.pingTimer)
@@ -282,10 +253,6 @@ export class TwitchChatClient {
   }
 }
 
-// ---------------------------------------------------------------------------
-// IRC message parser
-// ---------------------------------------------------------------------------
-
 /**
  * Parse a raw Twitch IRC PRIVMSG line (with tags) into a TwitchChatMessage.
  *
@@ -293,7 +260,6 @@ export class TwitchChatClient {
  *   @badge-info=...;badges=...;color=#FF4500;display-name=Foo;... :foo!foo@foo.tmi.twitch.tv PRIVMSG #channel :Hello world
  */
 function parsePrivmsg(raw: string): TwitchChatMessage | null {
-  // Split tags from the rest
   if (!raw.startsWith("@")) return null
 
   const parsed = splitTaggedLine(raw)
@@ -301,8 +267,6 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
 
   const { tags, rest } = parsed
 
-  // Parse prefix to get userName
-  // :foo!foo@foo.tmi.twitch.tv PRIVMSG #channel :message
   const prefixMatch = rest.match(/^:(\w+)!\S+ PRIVMSG #(\S+) :(.*)$/)
   if (!prefixMatch) return null
 
@@ -310,14 +274,12 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
   const channel = prefixMatch[2]
   let messageText = prefixMatch[3]
 
-  // Detect /me (ACTION) messages
   const isAction =
     messageText.startsWith("\x01ACTION ") && messageText.endsWith("\x01")
   if (isAction) {
     messageText = messageText.slice(8, -1)
   }
 
-  // Extract badge info
   const badges = tags.get("badges") ?? ""
   const parsedBadges = parseBadgesTag(badges)
   const parsedEmotes = parseEmotesTag(tags.get("emotes") ?? "", messageText)
@@ -328,7 +290,7 @@ function parsePrivmsg(raw: string): TwitchChatMessage | null {
   const roomId = tags.get("room-id") || null
   const userId = tags.get("user-id") || null
 
-  // Timestamp: tmi-sent-ts is in milliseconds
+  // tmi-sent-ts is in milliseconds
   const tmiTs = tags.get("tmi-sent-ts")
   const receivedAt = tmiTs
     ? new Date(Number(tmiTs)).toISOString()
@@ -389,8 +351,8 @@ function parseUserNotice(raw: string): TwitchSystemMessage | null {
     ? parseEmotesTag(parsed.tags.get("emotes") ?? "", trailingText)
     : []
 
-  const text = [headline, details].filter(Boolean).join(" ").trim() ||
-    "Channel event"
+  const text =
+    [headline, details].filter(Boolean).join(" ").trim() || "Channel event"
 
   return {
     id:
@@ -475,21 +437,31 @@ function parseEmotesTag(raw: string, text: string): TwitchEmote[] {
 
 function parseTmiTimestamp(tags: Map<string, string>): string {
   const tmiTs = tags.get("tmi-sent-ts")
-  return tmiTs ? new Date(Number(tmiTs)).toISOString() : new Date().toISOString()
+  return tmiTs
+    ? new Date(Number(tmiTs)).toISOString()
+    : new Date().toISOString()
 }
 
 function decodeTagValue(value: string): string {
-  return value
-    .replace(/\\s/g, " ")
-    .replace(/\\:/g, ";")
-    .replace(/\\r/g, "\r")
-    .replace(/\\n/g, "\n")
-    .replace(/\\\\/g, "\\")
+  return value.replace(/\\(.)/g, (match, char: string) => {
+    switch (char) {
+      case "s":
+        return " "
+      case ":":
+        return ";"
+      case "r":
+        return "\r"
+      case "n":
+        return "\n"
+      case "\\":
+        return "\\"
+      default:
+        return match
+    }
+  })
 }
 
-function getUserNoticeEvent(
-  msgId: string
-): TwitchSystemMessage["event"] {
+function getUserNoticeEvent(msgId: string): TwitchSystemMessage["event"] {
   if (msgId === "announcement") {
     return "announcement"
   }

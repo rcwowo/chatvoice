@@ -3,7 +3,6 @@ import {
   CircleHelpIcon,
   PlusIcon,
   PlayIcon,
-  ShuffleIcon,
   SquareIcon,
   Trash2Icon,
 } from "lucide-react"
@@ -45,11 +44,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import {
-  SectionHeading,
-  SettingsToggle,
-  SettingsField,
-} from "@/components/settings/settings-primitives"
+import { SectionHeading } from "@/components/settings/settings-primitives"
 
 const VOICE_PARAM_HINT =
   "Not all voices support adjusting rate, pitch, or volume. Cloud voices especially often ignore these settings."
@@ -91,57 +86,6 @@ export function VoicesTab() {
 
   return (
     <div className="space-y-4">
-      {/* Voice assignment settings */}
-      <SectionHeading
-        title="Voice assignment"
-        description="Control how voices are given to new chatters."
-      />
-
-      <SettingsToggle
-        icon={ShuffleIcon}
-        title="Auto-assign voices"
-        description="Randomly assign and save a voice for each new chatter. When off, unassigned chatters use the default voice below without saving."
-        checked={config.playback.autoAssignVoices}
-        onCheckedChange={(checked) =>
-          updateConfig((current) => ({
-            ...current,
-            playback: { ...current.playback, autoAssignVoices: checked },
-          }))
-        }
-      />
-
-      {!config.playback.autoAssignVoices && (
-        <SettingsField label="Default voice for unassigned chatters">
-          <Select
-            value={config.playback.defaultVoiceProfileId || "__random__"}
-            onValueChange={(value) =>
-              updateConfig((current) => ({
-                ...current,
-                playback: {
-                  ...current.playback,
-                  defaultVoiceProfileId:
-                    value === "__random__" ? "" : value,
-                },
-              }))
-            }
-          >
-            <SelectTrigger className="w-full max-w-xs">
-              <SelectValue placeholder="Random (from enabled)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__random__">
-                Random (from enabled)
-              </SelectItem>
-              {config.voiceProfiles.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </SettingsField>
-      )}
-
       <div className="flex items-center justify-between gap-2">
         <SectionHeading
           title="Voice profiles"
@@ -202,7 +146,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-28 lg:min-w-28 lg:w-full text-sm"
+                      className="h-7 w-28 text-sm lg:w-full lg:min-w-28"
                     />
                   </TableCell>
                   <TableCell>
@@ -232,7 +176,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-16 xl:min-w-16 xl:w-full text-center text-sm"
+                      className="h-7 w-16 text-center text-sm xl:w-full xl:min-w-16"
                     />
                   </TableCell>
                   <TableCell>
@@ -248,7 +192,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-16 xl:min-w-16 xl:w-full text-center text-sm"
+                      className="h-7 w-16 text-center text-sm xl:w-full xl:min-w-16"
                     />
                   </TableCell>
                   <TableCell>
@@ -264,7 +208,7 @@ export function VoicesTab() {
                           updateConfig
                         )
                       }
-                      className="h-7 w-16 xl:min-w-16 xl:w-full text-center text-sm"
+                      className="h-7 w-16 text-center text-sm xl:w-full xl:min-w-16"
                     />
                   </TableCell>
                   <TableCell className="text-center">
@@ -369,8 +313,7 @@ function PreviewButton({ profile }: { profile: VoiceProfile }) {
 
 /**
  * Defers rendering the (potentially huge) voice option list until the dropdown
- * is actually opened. This avoids mounting hundreds of Radix SelectItems per
- * profile row when the tab first appears.
+ * is actually opened, avoiding hundreds of mounted SelectItems per profile row.
  */
 function VoiceSelect({
   value,
@@ -390,8 +333,13 @@ function VoiceSelect({
     : undefined
 
   return (
-    <Select value={value} onValueChange={onValueChange} open={open} onOpenChange={setOpen}>
-      <SelectTrigger className="h-7 w-40 xl:min-w-40 xl:w-full text-sm">
+    <Select
+      value={value}
+      onValueChange={onValueChange}
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <SelectTrigger className="h-7 w-40 text-sm xl:w-full xl:min-w-40">
         <SelectValue
           placeholder={voicesLoading ? "Loading..." : "Select voice"}
         >

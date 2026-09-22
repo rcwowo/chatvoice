@@ -3,14 +3,22 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { toast } from "sonner"
 import { SparklesIcon } from "lucide-react"
 
-import { ChatvoiceProvider, useChatvoiceSettings } from "@/lib/chatvoice-context"
-import { hasNewVersion, initLastSeenVersion, markVersionSeen } from "@/lib/changelog"
+import {
+  ChatvoiceProvider,
+  useChatvoiceSettings,
+} from "@/lib/chatvoice-context"
+import {
+  hasNewVersion,
+  initLastSeenVersion,
+  markVersionSeen,
+} from "@/lib/changelog"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppHeader } from "@/components/app-header"
 import { OnboardingDialog } from "@/components/onboarding-dialog"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { ChangelogDialog } from "@/components/changelog-dialog"
 import { ChatPage } from "@/pages/chat-page"
+import { CommandsPage } from "@/pages/commands-page"
 import { LandingPage } from "@/pages/landing-page"
 
 function DashboardLayout() {
@@ -18,7 +26,6 @@ function DashboardLayout() {
   const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [changelogOpen, setChangelogOpen] = React.useState(false)
 
-  // Show a toast when the app version has changed since last visit
   React.useEffect(() => {
     if (!ready || needsOnboarding) return
 
@@ -79,6 +86,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/app" element={<AppShell />} />
+        <Route path="/commands" element={<CommandsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -22,6 +22,12 @@ import {
 
 const DEFAULT_MESSAGE_LIMIT = 60
 
+/**
+ * Messages parked while a room's third-party emote catalog loads, capped so a
+ * busy room can't buffer unbounded data.
+ */
+const MAX_PENDING_ROOM_MESSAGES = 200
+
 export type TwitchTimelineItem =
   | { kind: "chat"; message: TwitchChatMessage }
   | { kind: "system"; message: TwitchSystemMessage }
@@ -35,7 +41,9 @@ type PendingConnect = {
 export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
   const clientRef = React.useRef<TwitchChatClient | null>(null)
   const pendingConnectRef = React.useRef<PendingConnect | null>(null)
-  const pendingRoomMessagesRef = React.useRef(new Map<string, TwitchChatMessage[]>())
+  const pendingRoomMessagesRef = React.useRef(
+    new Map<string, TwitchChatMessage[]>()
+  )
   const emoteCatalogRef = React.useRef(createEmptyEmoteCatalog())
   const emoteCatalogRoomIdRef = React.useRef<string | null>(null)
   const emoteCatalogLoadingRoomIdRef = React.useRef<string | null>(null)
@@ -55,20 +63,23 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
       channel: null,
       lastError: null,
     })
-  const [messages, setMessages] = React.useState<TwitchChatMessage[]>([])
+
   const [timeline, setTimeline] = React.useState<TwitchTimelineItem[]>([])
+  const messages = React.useMemo<TwitchChatMessage[]>(
+    () =>
+      timeline
+        .filter((entry) => entry.kind === "chat")
+        .map((entry) => entry.message),
+    [timeline]
+  )
   const [logs, setLogs] = React.useState<string[]>([])
 
   React.useEffect(() => {
-    setMessages((current) =>
-      current.length > messageLimit ? current.slice(-messageLimit) : current
-    )
     setTimeline((current) =>
       current.length > messageLimit ? current.slice(-messageLimit) : current
     )
   }, [messageLimit])
 
-  // Stable log appender
   const appendLog = React.useCallback((text: string) => {
     setLogs((current) => [text, ...current].slice(0, 20))
   }, [])
@@ -101,35 +112,45 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
     []
   )
 
-  const appendMessages = React.useCallback((nextMessages: TwitchChatMessage[]) => {
-    if (nextMessages.length === 0) {
-      return
-    }
+  const appendMessages = React.useCallback(
+    (nextMessages: TwitchChatMessage[]) => {
+      if (nextMessages.length === 0) {
+        return
+      }
 
-    const limit = messageLimitRef.current
-    setMessages((current) => [...current, ...nextMessages].slice(-limit))
-    setTimeline((current) => [
-      ...current,
-      ...nextMessages.map((message) => ({ kind: "chat" as const, message })),
-    ].slice(-limit))
-  }, [])
+      const limit = messageLimitRef.current
+      setTimeline((current) =>
+        [
+          ...current,
+          ...nextMessages.map((message) => ({
+            kind: "chat" as const,
+            message,
+          })),
+        ].slice(-limit)
+      )
+    },
+    []
+  )
 
-  const appendSystemMessage = React.useCallback((message: TwitchSystemMessage) => {
-    const hydrated = hydrateSystemMessageEmotes(
-      message,
-      message.roomId && emoteCatalogRoomIdRef.current === message.roomId
-        ? emoteCatalogRef.current
-        : null
-    )
-    const limit = messageLimitRef.current
-    setTimeline((current) => [
-      ...current,
-      { kind: "system" as const, message: hydrated },
-    ].slice(-limit))
-  }, [])
+  const appendSystemMessage = React.useCallback(
+    (message: TwitchSystemMessage) => {
+      const hydrated = hydrateSystemMessageEmotes(
+        message,
+        message.roomId && emoteCatalogRoomIdRef.current === message.roomId
+          ? emoteCatalogRef.current
+          : null
+      )
+      const limit = messageLimitRef.current
+      setTimeline((current) =>
+        [...current, { kind: "system" as const, message: hydrated }].slice(
+          -limit
+        )
+      )
+    },
+    []
+  )
 
   const resetChatState = React.useCallback(() => {
-    setMessages([])
     setTimeline([])
     setLogs([])
   }, [])
@@ -155,17 +176,25 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
     [appendMessages, hydrateChatMessage]
   )
 
-  const queuePendingRoomMessage = React.useCallback((message: TwitchChatMessage) => {
-    const roomId = message.roomId
-    if (!roomId) {
-      appendMessages([hydrateChatMessage(message, null, badgeCatalogRef.current)])
-      return
-    }
+  const queuePendingRoomMessage = React.useCallback(
+    (message: TwitchChatMessage) => {
+      const roomId = message.roomId
+      if (!roomId) {
+        appendMessages([
+          hydrateChatMessage(message, null, badgeCatalogRef.current),
+        ])
+        return
+      }
 
-    const pending = pendingRoomMessagesRef.current.get(roomId) ?? []
-    pending.push(message)
-    pendingRoomMessagesRef.current.set(roomId, pending)
-  }, [appendMessages, hydrateChatMessage])
+      const pending = pendingRoomMessagesRef.current.get(roomId) ?? []
+      pending.push(message)
+      if (pending.length > MAX_PENDING_ROOM_MESSAGES) {
+        pending.splice(0, pending.length - MAX_PENDING_ROOM_MESSAGES)
+      }
+      pendingRoomMessagesRef.current.set(roomId, pending)
+    },
+    [appendMessages, hydrateChatMessage]
+  )
 
   const maybeLoadTwitchBadges = React.useCallback(
     (channel: string | null) => {
@@ -191,26 +220,16 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
           badgeCatalogChannelRef.current = login
           badgeCatalogLoadingChannelRef.current = null
 
-          setMessages((current) =>
-            current.map((entry) =>
-              entry.channel.toLowerCase() === login
-                ? hydrateMessageBadges(entry, catalog)
-                : entry
-            )
-          )
           setTimeline((current) =>
-            current.map((entry) => {
-              if (entry.kind !== "chat") {
-                return entry
-              }
-
-              return entry.message.channel.toLowerCase() === login
+            current.map((entry) =>
+              entry.kind === "chat" &&
+              entry.message.channel.toLowerCase() === login
                 ? {
                     ...entry,
                     message: hydrateMessageBadges(entry.message, catalog),
                   }
                 : entry
-            })
+            )
           )
 
           appendLog(`Loaded ${catalog.size} Twitch badges for #${login}`)
@@ -252,41 +271,34 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
           emoteCatalogRoomIdRef.current = roomId
           emoteCatalogLoadingRoomIdRef.current = null
 
-          setMessages((current) =>
-            current.map((entry) =>
-              entry.roomId === roomId
-                ? hydrateChatMessage(entry, emoteCatalogRef.current)
-                : entry
-            )
-          )
           setTimeline((current) =>
             current.map((entry) => {
-              if (entry.kind === "chat") {
-                return entry.message.roomId === roomId
-                  ? {
-                      ...entry,
-                      message: hydrateChatMessage(
-                        entry.message,
-                        emoteCatalogRef.current
-                      ),
-                    }
-                  : entry
+              if (entry.message.roomId !== roomId) {
+                return entry
               }
 
-              return entry.message.roomId === roomId
+              return entry.kind === "chat"
                 ? {
+                    ...entry,
+                    message: hydrateChatMessage(
+                      entry.message,
+                      emoteCatalogRef.current
+                    ),
+                  }
+                : {
                     ...entry,
                     message: hydrateSystemMessageEmotes(
                       entry.message,
                       emoteCatalogRef.current
                     ),
                   }
-                : entry
             })
           )
           flushPendingRoomMessages(roomId, true)
 
-          appendLog(`Loaded ${catalog.size} third-party emotes for room ${roomId}`)
+          appendLog(
+            `Loaded ${catalog.size} third-party emotes for room ${roomId}`
+          )
         })
         .catch(() => {
           if (generation !== emoteCatalogGenerationRef.current) {
@@ -303,7 +315,6 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
     [appendLog, flushPendingRoomMessages, hydrateChatMessage]
   )
 
-  // Lazily create the client with a stable handler
   const getClient = React.useCallback(() => {
     if (clientRef.current) return clientRef.current
 
@@ -352,7 +363,9 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
             id: `system:disconnected:${Date.now()}`,
             channel: activeChannelRef.current,
             roomId: null,
-            text: event.reason ? `Disconnected: ${event.reason}` : "Disconnected",
+            text: event.reason
+              ? `Disconnected: ${event.reason}`
+              : "Disconnected",
             headline: event.reason ? "Disconnected" : "Disconnected",
             details: event.reason,
             emotes: [],
@@ -427,7 +440,6 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
     queuePendingRoomMessage,
   ])
 
-  // Disconnect on unmount
   React.useEffect(() => {
     return () => {
       clientRef.current?.disconnect()
@@ -436,7 +448,6 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
 
   const startConnection = React.useCallback(
     (channel: string): Promise<string> => {
-      // Reject any previously pending connect
       if (pendingConnectRef.current) {
         pendingConnectRef.current.reject(new Error("New connection started"))
         pendingConnectRef.current = null
@@ -458,7 +469,11 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
       maybeLoadTwitchBadges(normalizedChannel)
 
       return new Promise<string>((resolve, reject) => {
-        pendingConnectRef.current = { channel: normalizedChannel, resolve, reject }
+        pendingConnectRef.current = {
+          channel: normalizedChannel,
+          resolve,
+          reject,
+        }
         getClient().connect(channel)
       })
     },

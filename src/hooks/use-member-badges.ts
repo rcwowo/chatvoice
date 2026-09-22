@@ -1,9 +1,6 @@
 import * as React from "react"
 
-import {
-  type MemberBadge,
-  loadMemberBadgeLookup,
-} from "@/lib/member-badges"
+import { type MemberBadge, loadMemberBadgeLookup } from "@/lib/member-badges"
 
 export function useMemberBadges() {
   const [badgeByUserId, setBadgeByUserId] = React.useState<

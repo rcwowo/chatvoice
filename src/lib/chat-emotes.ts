@@ -1,4 +1,9 @@
-import type { TwitchChatMessage, TwitchEmote, TwitchEmoteProvider, TwitchSystemMessage } from "@/lib/twitch-chat"
+import type {
+  TwitchChatMessage,
+  TwitchEmote,
+  TwitchEmoteProvider,
+  TwitchSystemMessage,
+} from "@/lib/twitch-chat"
 
 type EmoteCatalogEntry = {
   id: string
@@ -78,6 +83,9 @@ const PROVIDER_PRIORITY: Array<Exclude<TwitchEmoteProvider, "twitch">> = [
   "ffz",
 ]
 
+// Bounded so a stalled provider connection can't park room messages forever.
+const PROVIDER_FETCH_TIMEOUT_MS = 8_000
+
 export function createEmptyEmoteCatalog(): ThirdPartyEmoteCatalog {
   return new Map()
 }
@@ -151,7 +159,10 @@ export function hydrateSystemMessageEmotes(
   }
 }
 
-export function stripMessageEmotes(text: string, emotes: TwitchEmote[]): string {
+export function stripMessageEmotes(
+  text: string,
+  emotes: TwitchEmote[]
+): string {
   const thirdPartyRanges = normalizeRanges(
     emotes.map((emote) => ({ start: emote.start, end: emote.end }))
   )
@@ -223,7 +234,15 @@ function mergeThirdPartyEmotes(
 }
 
 function hasOverlap(ranges: TextRange[], start: number, end: number) {
-  return ranges.some((range) => start <= range.end && end >= range.start)
+  for (const range of ranges) {
+    if (range.start > end) {
+      return false
+    }
+    if (start <= range.end && end >= range.start) {
+      return true
+    }
+  }
+  return false
 }
 
 function normalizeRanges(ranges: TextRange[]): TextRange[] {
@@ -250,9 +269,13 @@ function normalizeRanges(ranges: TextRange[]): TextRange[] {
   return merged
 }
 
-async function fetchBetterTtvEmotes(roomId: string): Promise<EmoteCatalogEntry[]> {
+async function fetchBetterTtvEmotes(
+  roomId: string
+): Promise<EmoteCatalogEntry[]> {
   const [globalResponse, roomResponse] = await Promise.allSettled([
-    fetchJson<BetterTtvEmote[]>("https://api.betterttv.net/3/cached/emotes/global"),
+    fetchJson<BetterTtvEmote[]>(
+      "https://api.betterttv.net/3/cached/emotes/global"
+    ),
     fetchJson<BetterTtvUserResponse>(
       `https://api.betterttv.net/3/cached/users/twitch/${encodeURIComponent(roomId)}`
     ),
@@ -283,7 +306,9 @@ async function fetchFrankerFaceZEmotes(
   roomId: string
 ): Promise<EmoteCatalogEntry[]> {
   const [globalResponse, roomResponse] = await Promise.allSettled([
-    fetchJson<FrankerFaceZGlobalResponse>("https://api.frankerfacez.com/v1/set/global"),
+    fetchJson<FrankerFaceZGlobalResponse>(
+      "https://api.frankerfacez.com/v1/set/global"
+    ),
     fetchJson<FrankerFaceZRoomResponse>(
       `https://api.frankerfacez.com/v1/room/id/${encodeURIComponent(roomId)}`
     ),
@@ -309,7 +334,9 @@ async function fetchFrankerFaceZEmotes(
     .filter((emote) => emote.imageUrl)
 }
 
-async function fetchSevenTvEmotes(roomId: string): Promise<EmoteCatalogEntry[]> {
+async function fetchSevenTvEmotes(
+  roomId: string
+): Promise<EmoteCatalogEntry[]> {
   const [globalResponse, roomResponse] = await Promise.allSettled([
     fetchJson<SevenTvEmoteSet>("https://7tv.io/v3/emote-sets/global"),
     fetchJson<SevenTvUserResponse>(
@@ -343,7 +370,9 @@ function extractFrankerFaceZGlobalEmotes(
   const defaultSets = new Set((response.default_sets ?? []).map(String))
 
   return Object.entries(response.sets ?? {}).flatMap(([setId, set]) =>
-    defaultSets.size === 0 || defaultSets.has(setId) ? set.emoticons ?? [] : []
+    defaultSets.size === 0 || defaultSets.has(setId)
+      ? (set.emoticons ?? [])
+      : []
   )
 }
 
@@ -358,8 +387,9 @@ function buildSevenTvImageUrl(host: SevenTvHost | undefined): string {
     return ""
   }
 
-  const file = host.files?.find((candidate) => candidate.name.startsWith("1x."))
-    ?? host.files?.[0]
+  const file =
+    host.files?.find((candidate) => candidate.name.startsWith("1x.")) ??
+    host.files?.[0]
 
   if (!file?.name) {
     return ""
@@ -369,7 +399,9 @@ function buildSevenTvImageUrl(host: SevenTvHost | undefined): string {
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url)
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(PROVIDER_FETCH_TIMEOUT_MS),
+  })
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status}`)
   }

@@ -311,7 +311,11 @@ function VoicesStep({
         />
       )}
 
-      <Button className="w-full" onClick={onContinue} disabled={tier === "loading"}>
+      <Button
+        className="w-full"
+        onClick={onContinue}
+        disabled={tier === "loading"}
+      >
         Continue
         <ArrowRightIcon className="size-4" />
       </Button>
@@ -350,7 +354,9 @@ function SupportStatusBanner({
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{title}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground text-pretty">{body}</p>
+        <p className="mt-0.5 text-xs text-pretty text-muted-foreground">
+          {body}
+        </p>
       </div>
     </div>
   )
