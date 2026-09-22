@@ -1,11 +1,12 @@
 [
     {
         "version": "1.3.0",
-        "date": "2026-09-21",
+        "date": "2026-09-22",
         "items": [
             "Added a sharable commands page.",
             "Added the ability for chatters to insert sound effects in their messages.",
-            "Added word/phrase replacements to censor or remove certain words before they're spoken."
+            "Added word/phrase replacements to censor or remove certain words before they're spoken.",
+            "Slight adjustments to how the settings UI is arranged."
         ]
     },
     {
