@@ -63,14 +63,18 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
       channel: null,
       lastError: null,
     })
-  const [messages, setMessages] = React.useState<TwitchChatMessage[]>([])
+
   const [timeline, setTimeline] = React.useState<TwitchTimelineItem[]>([])
+  const messages = React.useMemo<TwitchChatMessage[]>(
+    () =>
+      timeline
+        .filter((entry) => entry.kind === "chat")
+        .map((entry) => entry.message),
+    [timeline]
+  )
   const [logs, setLogs] = React.useState<string[]>([])
 
   React.useEffect(() => {
-    setMessages((current) =>
-      current.length > messageLimit ? current.slice(-messageLimit) : current
-    )
     setTimeline((current) =>
       current.length > messageLimit ? current.slice(-messageLimit) : current
     )
@@ -115,7 +119,6 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
       }
 
       const limit = messageLimitRef.current
-      setMessages((current) => [...current, ...nextMessages].slice(-limit))
       setTimeline((current) =>
         [
           ...current,
@@ -148,7 +151,6 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
   )
 
   const resetChatState = React.useCallback(() => {
-    setMessages([])
     setTimeline([])
     setLogs([])
   }, [])
@@ -218,26 +220,16 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
           badgeCatalogChannelRef.current = login
           badgeCatalogLoadingChannelRef.current = null
 
-          setMessages((current) =>
-            current.map((entry) =>
-              entry.channel.toLowerCase() === login
-                ? hydrateMessageBadges(entry, catalog)
-                : entry
-            )
-          )
           setTimeline((current) =>
-            current.map((entry) => {
-              if (entry.kind !== "chat") {
-                return entry
-              }
-
-              return entry.message.channel.toLowerCase() === login
+            current.map((entry) =>
+              entry.kind === "chat" &&
+              entry.message.channel.toLowerCase() === login
                 ? {
                     ...entry,
                     message: hydrateMessageBadges(entry.message, catalog),
                   }
                 : entry
-            })
+            )
           )
 
           appendLog(`Loaded ${catalog.size} Twitch badges for #${login}`)
@@ -279,36 +271,27 @@ export function useTwitchChat(messageLimit: number = DEFAULT_MESSAGE_LIMIT) {
           emoteCatalogRoomIdRef.current = roomId
           emoteCatalogLoadingRoomIdRef.current = null
 
-          setMessages((current) =>
-            current.map((entry) =>
-              entry.roomId === roomId
-                ? hydrateChatMessage(entry, emoteCatalogRef.current)
-                : entry
-            )
-          )
           setTimeline((current) =>
             current.map((entry) => {
-              if (entry.kind === "chat") {
-                return entry.message.roomId === roomId
-                  ? {
-                      ...entry,
-                      message: hydrateChatMessage(
-                        entry.message,
-                        emoteCatalogRef.current
-                      ),
-                    }
-                  : entry
+              if (entry.message.roomId !== roomId) {
+                return entry
               }
 
-              return entry.message.roomId === roomId
+              return entry.kind === "chat"
                 ? {
+                    ...entry,
+                    message: hydrateChatMessage(
+                      entry.message,
+                      emoteCatalogRef.current
+                    ),
+                  }
+                : {
                     ...entry,
                     message: hydrateSystemMessageEmotes(
                       entry.message,
                       emoteCatalogRef.current
                     ),
                   }
-                : entry
             })
           )
           flushPendingRoomMessages(roomId, true)

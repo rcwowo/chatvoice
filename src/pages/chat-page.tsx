@@ -16,6 +16,7 @@ import type { MessageTimestampFormat } from "@/lib/chatvoice-config"
 import { findMessageUrls } from "@/lib/chatvoice-config"
 import type {
   TwitchBadge,
+  TwitchChatMessage,
   TwitchEmote,
   TwitchSystemMessage,
 } from "@/lib/twitch-chat"
@@ -283,7 +284,7 @@ const SYSTEM_EVENT_META: Record<
   },
 }
 
-function SystemMessageRow({
+const SystemMessageRow = React.memo(function SystemMessageRow({
   message,
   timestampFormat,
 }: {
@@ -351,7 +352,63 @@ function SystemMessageRow({
       </div>
     </div>
   )
+})
+
+type ChatMessageRowProps = {
+  message: TwitchChatMessage
+  isPlaying: boolean
+  timestampFormat: MessageTimestampFormat
+  memberBadge: MemberBadge | null
+  soundNames: Set<string>
 }
+
+const ChatMessageRow = React.memo(function ChatMessageRow({
+  message,
+  isPlaying,
+  timestampFormat,
+  memberBadge,
+  soundNames,
+}: ChatMessageRowProps) {
+  const timestamp = formatMessageTimestamp(message.receivedAt, timestampFormat)
+
+  return (
+    <div
+      className={`group flex gap-1.5 px-1 py-0.5 leading-snug ${
+        isPlaying ? "rounded bg-primary/10" : "hover:bg-muted/40"
+      }`}
+    >
+      {timestamp ? (
+        <span className="shrink-0 text-[0.786em] leading-snug text-muted-foreground/50 select-none">
+          {timestamp}
+        </span>
+      ) : null}
+
+      <span className="min-w-0 flex-1">
+        <ChatBadges badges={message.badges} memberBadge={memberBadge} />
+        <span
+          className="font-semibold"
+          style={message.color ? { color: message.color } : undefined}
+        >
+          {message.displayName}
+        </span>
+        <span className="text-muted-foreground">: </span>
+        <MessageText
+          text={message.text}
+          emotes={message.emotes}
+          soundNames={soundNames}
+        />
+        {isPlaying ? (
+          <Badge
+            variant="default"
+            className="ml-1.5 inline-flex h-[1.14em] px-[0.286em] align-middle text-[0.714em] leading-none"
+          >
+            <Volume2 />
+          </Badge>
+        ) : null}
+      </span>
+    </div>
+  )
+})
 
 export function ChatPage() {
   const {
@@ -499,62 +556,21 @@ export function ChatPage() {
                         )
                       }
 
-                      const message = entry.message
-                      const isPlaying = message.id === currentlyPlayingId
-                      const timestamp = formatMessageTimestamp(
-                        message.receivedAt,
-                        timestampFormat
-                      )
                       return (
-                        <div
-                          key={message.id}
-                          className={`group flex gap-1.5 px-1 py-0.5 leading-snug ${
-                            isPlaying
-                              ? "rounded bg-primary/10"
-                              : "hover:bg-muted/40"
-                          }`}
-                        >
-                          {timestamp ? (
-                            <span className="shrink-0 text-[0.786em] leading-snug text-muted-foreground/50 select-none">
-                              {timestamp}
-                            </span>
-                          ) : null}
-
-                          <span className="min-w-0 flex-1">
-                            <ChatBadges
-                              badges={message.badges}
-                              memberBadge={
-                                message.userId
-                                  ? memberBadgeByUserId.get(message.userId)
-                                  : null
-                              }
-                            />
-                            <span
-                              className="font-semibold"
-                              style={
-                                message.color
-                                  ? { color: message.color }
-                                  : undefined
-                              }
-                            >
-                              {message.displayName}
-                            </span>
-                            <span className="text-muted-foreground">: </span>
-                            <MessageText
-                              text={message.text}
-                              emotes={message.emotes}
-                              soundNames={soundNames}
-                            />
-                            {isPlaying ? (
-                              <Badge
-                                variant="default"
-                                className="ml-1.5 inline-flex h-[1.14em] px-[0.286em] align-middle text-[0.714em] leading-none"
-                              >
-                                <Volume2 />
-                              </Badge>
-                            ) : null}
-                          </span>
-                        </div>
+                        <ChatMessageRow
+                          key={entry.message.id}
+                          message={entry.message}
+                          isPlaying={entry.message.id === currentlyPlayingId}
+                          timestampFormat={timestampFormat}
+                          memberBadge={
+                            entry.message.userId
+                              ? (memberBadgeByUserId.get(
+                                  entry.message.userId
+                                ) ?? null)
+                              : null
+                          }
+                          soundNames={soundNames}
+                        />
                       )
                     })}
                   </div>
