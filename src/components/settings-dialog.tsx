@@ -55,9 +55,9 @@ const SETTINGS_TABS: {
 }[] = [
   { id: "general", label: "General", icon: WrenchIcon },
   { id: "voices", label: "Voices", icon: AudioLinesIcon },
-  { id: "sounds", label: "Sounds", icon: Volume2Icon },
   { id: "moderation", label: "Moderation", icon: ShieldIcon },
   { id: "users", label: "Users", icon: UsersIcon },
+  { id: "sounds", label: "Sounds", icon: Volume2Icon },
   { id: "commands", label: "Commands", icon: TerminalIcon },
 ]
 
@@ -172,9 +172,9 @@ export function SettingsDialog({
             >
               {activeTab === "general" && <GeneralTab />}
               {activeTab === "voices" && <VoicesTab />}
-              {activeTab === "sounds" && <SoundsTab />}
               {activeTab === "moderation" && <ModerationTab />}
               {activeTab === "users" && <UsersTab />}
+              {activeTab === "sounds" && <SoundsTab />}
               {activeTab === "commands" && <CommandsTab />}
               {activeTab === "backup" && <BackupTab />}
             </div>
